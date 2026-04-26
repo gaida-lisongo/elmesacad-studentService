@@ -1,0 +1,23 @@
+# ELMESACAD Student-Service Rules
+
+## Stack Technique
+- Framework: Next.js 15+ (App Router)
+- Langage: TypeScript
+- Base de données: Supabase / PostgreSQL
+- Style: Tailwind CSS
+- Validation: Zod
+
+## Architecture des Données
+- Prioriser les schémas extensibles pour les "Commandes".
+- Utiliser des UUID pour les tokens de génération de documents.
+- Respecter la distinction Type 1 (Non signé) et Type 2 (Signé/Validation).
+
+## Standards de Code
+- Pas de WordPress. Code personnalisé uniquement.
+- Utiliser des "Server Components" par défaut.
+- Séparer la logique de génération PDF (ex: React-pdf ou Puppeteer) des routes API.
+- L'envoi d'email doit pointer vers l'endpoint externe défini dans le contexte.
+
+## Sécurité
+- Les QR Codes doivent pointer vers une route de vérification publique `/verify/[id]`.
+- Les données sensibles de l'étudiant ne doivent pas être en clair dans l'URL du QR Code.
