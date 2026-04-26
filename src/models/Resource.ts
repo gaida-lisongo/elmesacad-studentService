@@ -28,12 +28,12 @@ const ResourceSchema = new Schema({
   status: { type: String, default: 'active' },
   branding: {
     institut: { type: String, default: 'INBTP' },
-    section: String,
-    sectionRef: String,
-    chef: String,
-    contact: String,
-    email: String,
-    adresse: String,
+    section: { type: String, default: '' },
+    sectionRef: { type: String, default: '' },
+    chef: { type: String, default: '' },
+    contact: { type: String, default: '' },
+    email: { type: String, default: '' },
+    adresse: { type: String, default: '' },
   },
 }, {
   timestamps: true,
@@ -46,19 +46,19 @@ const ResourceModel = mongoose.models.Resource || mongoose.model<IResource>('Res
 const LaboSchema = new Schema({
   matiere: { reference: String, designation: String, credit: String },
   titulaire: { reference: String, email: String, matricule: String, nom: String },
-  note: Number,
+  note: { type: Number, default: 0 },
 });
 
 const StageSchema = new Schema({
   matiere: { reference: String, designation: String, credit: String },
   titulaire: { reference: String, email: String, matricule: String, nom: String },
-  note: Number,
+  note: { type: Number, default: 0 },
 });
 
 const SujetSchema = new Schema({
   matiere: { reference: String, credit: String },
   lecteurs: [{ reference: String, email: String, matricule: String, nom: String }],
-  note: Number,
+  note: { type: Number, default: 0 },
 });
 
 const SessionSchema = new Schema({

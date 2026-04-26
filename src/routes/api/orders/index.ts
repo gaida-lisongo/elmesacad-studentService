@@ -43,7 +43,7 @@ router.get('/:id/download', async (req: Request, res: Response, next: NextFuncti
     const buffer = await DocumentMappingService.generateDocumentBuffer(order);
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${order.orderNumber}.pdf`);
+    res.setHeader('Content-Disposition', `inline; filename=${order.orderNumber}.pdf`);
     res.send(buffer);
   } catch (error) {
     next(error);

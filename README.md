@@ -56,23 +56,87 @@ curl -X POST http://localhost:3000/api/parcours \
 ```
 
 ### 2. Ajouter une Ressource (Admin)
+Les ressources utilisent des **discriminateurs**. Le champ `categorie` détermine les champs supplémentaires requis.
+
+#### A. Laboratoire (`labo`)
 ```bash
 curl -X POST http://localhost:3000/api/resources \
 -H "Content-Type: application/json" \
 -d '{
-  "type": "labo",
+  "categorie": "labo",
   "designation": "Bon de Laboratoire - Physique",
-  "category": "labo",
   "amount": 15,
-  "status": "active",
-  "branding": {
-    "institut": "INBTP",
-    "section": "BTP",
-    "chef": "Dr. Ir. KATEMBO",
-    "contact": "+243 81 000 0000",
-    "email": "section.btp@inbtp.ac.cd",
-    "adresse": "Kinshasa/Gombe"
-  }
+  "description": [{"title": "Instructions", "contenu": ["Présence obligatoire"]}],
+  "matiere": { "reference": "PHYS101" },
+  "titulaire": { "nom": "Prof. Kabila" }
+}'
+```
+
+#### B. Stage (`stage`)
+```bash
+curl -X POST http://localhost:3000/api/resources \
+-H "Content-Type: application/json" \
+-d '{
+  "categorie": "stage",
+  "designation": "Fiche de Stage Professionnel",
+  "amount": 25,
+  "description": [{"title": "Objectif", "contenu": ["Immersion en entreprise"]}],
+  "matiere": { "reference": "STG-BTP" },
+  "titulaire": { "nom": "Ir. Lelo" }
+}'
+```
+
+#### C. Sujet de TFE (`sujet`)
+```bash
+curl -X POST http://localhost:3000/api/resources \
+-H "Content-Type: application/json" \
+-d '{
+  "categorie": "sujet",
+  "designation": "Validation Sujet TFE",
+  "amount": 10,
+  "description": [{"title": "Titre", "contenu": ["Étude de structure"]}],
+  "matiere": { "reference": "TFE-01" },
+  "lecteurs": [{ "nom": "Dr. Mukwege" }]
+}'
+```
+
+#### D. Session d'Examen (`session`)
+```bash
+curl -X POST http://localhost:3000/api/resources \
+-H "Content-Type: application/json" \
+-d '{
+  "categorie": "session",
+  "designation": "Inscription Session Spéciale",
+  "amount": 50,
+  "description": [{"title": "Conditions", "contenu": ["Être en règle de minerval"]}],
+  "matieres": [{ "reference": "MATH101" }, { "reference": "GEOL101" }]
+}'
+```
+
+#### E. Relevé ou Validation (`releve` / `validation`)
+```bash
+# Relevé de Notes
+curl -X POST http://localhost:3000/api/resources \
+-H "Content-Type: application/json" \
+-d '{
+  "categorie": "releve",
+  "designation": "Relevé de Notes Annuel",
+  "amount": 20,
+  "description": [{"title": "Note", "contenu": ["Document officiel"]}],
+  "programme": { "classe": "L3", "filiere": "BTP", "credits": 60 },
+  "annee": { "slug": "2025-2026" }
+}'
+
+# Fiche de Validation
+curl -X POST http://localhost:3000/api/resources \
+-H "Content-Type: application/json" \
+-d '{
+  "categorie": "validation",
+  "designation": "Fiche de Validation de Stage",
+  "amount": 15,
+  "description": [{"title": "Info", "contenu": ["Validation de fin de cycle"]}],
+  "programme": { "classe": "L3", "filiere": "BTP", "credits": 60 },
+  "annee": { "slug": "2025-2026" }
 }'
 ```
 
@@ -92,16 +156,37 @@ curl -X POST http://localhost:3000/api/commandes \
 
 ### 4. Validation Manuelle & Paiement (Admin)
 *Cette action déclenche l'envoi de l'email stylisé avec le lien PDF.*
+
+#### A. Valider le paiement et confirmer la commande
 ```bash
 curl -X PATCH http://localhost:3000/api/commandes/admin/ID_DE_LA_COMMANDE \
 -H "Content-Type: application/json" \
 -d '{
   "payment": "success",
   "validationStatus": "validated",
-  "validationDate": "2026-04-26T18:00:00Z",
-  "validatedBy": "Admin_Section_BTP",
-  "cote": 17,
-  "observation": "Travail validé par le chef de section."
+  "validationDate": "2026-04-26T19:00:00Z",
+  "validatedBy": "Chef de Section BTP",
+  "cote": 15,
+  "observation": "Travail pratique validé après vérification."
+}'
+```
+
+#### B. Marquer comme livré (Remise physique)
+```bash
+curl -X PATCH http://localhost:3000/api/commandes/admin/ID_DE_LA_COMMANDE \
+-H "Content-Type: application/json" \
+-d '{
+  "delivered": true
+}'
+```
+
+#### C. Rejeter une commande
+```bash
+curl -X PATCH http://localhost:3000/api/commandes/admin/ID_DE_LA_COMMANDE \
+-H "Content-Type: application/json" \
+-d '{
+  "validationStatus": "rejected",
+  "observation": "Le matricule ne correspond pas au nom fourni."
 }'
 ```
 

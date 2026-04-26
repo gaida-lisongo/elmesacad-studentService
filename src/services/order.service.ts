@@ -26,8 +26,10 @@ export class OrderService {
     const random = Math.floor(1000 + Math.random() * 9000);
     const orderNumber = `CMD-${year}-${random}`;
 
-    // 4. Générer la référence métier (REF-TYPE-YEAR-MATRICULE)
-    const reference = `REF-${data.type.toUpperCase()}-${year}-${parcours.student.matricule}`;
+    // 4. Générer la référence métier (REF-TYPE-YEAR-MATRICULE-RESOURCE_ID_SUFFIX)
+    // On ajoute les 4 derniers caractères de l'ID de la ressource pour permettre plusieurs commandes de même type
+    const ressourceIdSuffix = data.ressourceId.toString().slice(-4);
+    const reference = `REF-${data.type.toUpperCase()}-${year}-${parcours.student.matricule}-${ressourceIdSuffix}`;
 
     // 5. Créer la commande
     const order = await OrderModel.create({

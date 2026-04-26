@@ -14,26 +14,26 @@ export const baseResourceSchema = z.object({
   status: z.string().default('active'),
   branding: z.object({
     institut: z.string().default('INBTP'),
-    section: z.string().min(1),
-    sectionRef: z.string().min(1),
-    chef: z.string().min(1),
-    contact: z.string().min(1),
-    email: z.string().email(),
-    adresse: z.string().min(1),
-  }).optional(),
+    section: z.string().optional().default(''),
+    sectionRef: z.string().optional().default(''),
+    chef: z.string().optional().default(''),
+    contact: z.string().optional().default(''),
+    email: z.string().optional().default(''),
+    adresse: z.string().optional().default(''),
+  }).optional().default({}),
 });
 
 const matiereSchema = z.object({
-  reference: z.string(),
-  designation: z.string(),
-  credit: z.string(),
+  reference: z.string().min(1),
+  designation: z.string().optional().default(''),
+  credit: z.string().optional().default(''),
 });
 
 const userRefSchema = z.object({
-  reference: z.string(),
-  email: z.string().email(),
-  matricule: z.string(),
-  nom: z.string(),
+  reference: z.string().optional().default(''),
+  email: z.string().optional().default(''),
+  matricule: z.string().optional().default(''),
+  nom: z.string().min(1),
 });
 
 export const resourceLaboSchema = baseResourceSchema.extend({
@@ -65,9 +65,9 @@ export const resourceResultatSchema = baseResourceSchema.extend({
     credits: z.number(),
   }),
   annee: z.object({
-    debut: z.string(),
-    fin: z.string(),
-    slug: z.string(),
+    debut: z.string().optional().default(''),
+    fin: z.string().optional().default(''),
+    slug: z.string().min(1),
   }),
   categorie: z.enum(['validation', 'releve']),
 });
