@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 
+
 describe('API Tests', () => {
   it('should return 200 for the root endpoint', async () => {
     const res = await request(app).get('/');
