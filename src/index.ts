@@ -10,6 +10,7 @@ import parcoursRouter from './routes/api/parcours';
 import resourceRouter from './routes/api/resources';
 import orderRouter from './routes/api/orders';
 import testPrintRouter from './routes/api/test-print';
+import { DeploymentService } from './services/deployment.service';
 import { errorHandler } from './util/error-handler';
 
 // Load env vars
@@ -36,6 +37,16 @@ app.use('/api/parcours', parcoursRouter);
 app.use('/api/resources', resourceRouter);
 app.use('/api/commandes', orderRouter);
 app.use('/api/test-print', testPrintRouter);
+
+// Route de déploiement (Server Action)
+app.post('/api/admin/deploy', async (req: Request, res: Response) => {
+  try {
+    const result = await DeploymentService.buildAndPush();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Basic Route
 app.get('/', (req: Request, res: Response) => {
