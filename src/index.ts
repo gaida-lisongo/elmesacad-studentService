@@ -8,6 +8,7 @@ import logger from 'jet-logger';
 
 import parcoursRouter from './routes/api/parcours';
 import resourceRouter from './routes/api/resources';
+import orderRouter from './routes/api/orders';
 import { errorHandler } from './util/error-handler';
 
 // Load env vars
@@ -32,6 +33,7 @@ mongoose.connect(mongoUri)
 // Routes
 app.use('/api/parcours', parcoursRouter);
 app.use('/api/resources', resourceRouter);
+app.use('/api/commandes', orderRouter);
 
 // Basic Route
 app.get('/', (req: Request, res: Response) => {

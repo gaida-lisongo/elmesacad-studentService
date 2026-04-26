@@ -31,7 +31,7 @@ const ResourceSchema = new Schema({
   discriminatorKey: 'categorie',
 });
 
-const ResourceModel = mongoose.model<IResource>('Resource', ResourceSchema);
+const ResourceModel = mongoose.models.Resource || mongoose.model<IResource>('Resource', ResourceSchema);
 
 // Discriminants
 const LaboSchema = new Schema({
@@ -61,11 +61,23 @@ const ResultatSchema = new Schema({
   annee: { debut: String, fin: String, slug: String },
 });
 
-export const ResourceLabo = ResourceModel.discriminator('labo', LaboSchema);
-export const ResourceStage = ResourceModel.discriminator('stage', StageSchema);
-export const ResourceSujet = ResourceModel.discriminator('sujet', SujetSchema);
-export const ResourceSession = ResourceModel.discriminator('session', SessionSchema);
-export const ResourceResultat = ResourceModel.discriminator('validation', ResultatSchema.clone());
-export const ResourceReleve = ResourceModel.discriminator('releve', ResultatSchema.clone());
+// Utilisation de try-catch pour l'enregistrement des discriminants (plus robuste en dev/HMR)
+function getResourceDiscriminator(name: string, schema: Schema, value: string) {
+  if (ResourceModel.discriminators && ResourceModel.discriminators[name]) {
+    return ResourceModel.discriminators[name];
+  }
+  try {
+    return ResourceModel.discriminator(name, schema, value);
+  } catch (e) {
+    return ResourceModel.discriminators![name];
+  }
+}
+
+export const ResourceLabo = getResourceDiscriminator('ResourceLabo', LaboSchema, 'labo');
+export const ResourceStage = getResourceDiscriminator('ResourceStage', StageSchema, 'stage');
+export const ResourceSujet = getResourceDiscriminator('ResourceSujet', SujetSchema, 'sujet');
+export const ResourceSession = getResourceDiscriminator('ResourceSession', SessionSchema, 'session');
+export const ResourceResultat = getResourceDiscriminator('ResourceValidation', ResultatSchema.clone(), 'validation');
+export const ResourceReleve = getResourceDiscriminator('ResourceReleve', ResultatSchema.clone(), 'releve');
 
 export default ResourceModel;
