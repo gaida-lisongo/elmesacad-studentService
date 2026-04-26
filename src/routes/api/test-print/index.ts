@@ -3,7 +3,6 @@ import DocumentLaboratoire from '../../../util/pdf/DocumentLaboratoire';
 import DocumentMacaron from '../../../util/pdf/DocumentMacaron';
 import DocumentStage from '../../../util/pdf/DocumentStage';
 import DocumentSujet from '../../../util/pdf/DocumentSujet';
-import DocumentBulletin from '../../../util/pdf/DocumentBulletin';
 import DocumentReleve from '../../../util/pdf/DocumentReleve';
 
 const router = Router();
@@ -52,7 +51,7 @@ router.get('/:document', async (req: Request, res: Response) => {
           contact: { email: mockStudent.email, telephone: mockStudent.telephone, adresse: '' },
           document: { type: 'Macaron de Session', ressource: 'Session Académique', detail: 'Session 2025-2026', reference: 'REF-MACARON-TEST', dateCreate: new Date().toLocaleDateString('fr-FR') },
           session: { title: 'Session Ordinaire', amount: 50, period: { start: null, end: null } },
-          matieres: [{ reference: 'MATH101', designation: 'Mathématiques', credit: '6' }],
+          matieres: [{ matiere: 'Mathématiques', dateEpreuve: '12/05/2026' }],
           verificationUrl
         });
         await docInstance.generate();
@@ -81,15 +80,15 @@ router.get('/:document', async (req: Request, res: Response) => {
       case 'sujet':
         docInstance = new DocumentSujet({
           projet: {
-            validation: 'validated',
+            validation: true,
             note: 18,
             titre: 'Étude de la résistance des matériaux locaux',
             directeur: 'Prof. Kabila',
             co_directeur: 'Ir. Lelo',
             thematique: ['Structure'],
-            justification: 'Besoin de matériaux durables',
-            problematique: 'Comment optimiser la résistance ?',
-            objectif: 'Définir de nouveaux standards',
+            justification: ['Besoin de matériaux durables'],
+            problematique: ['Comment optimiser la résistance ?'],
+            objectif: ['Définir de nouveaux standards'],
             methodology: [{ section: 'Analyse', content: 'Tests en labo' }],
             resultats: [{ section: 'Attendu', content: 'Rapport complet' }],
             chronogrammes: [{ section: 'Phase 1', content: 'Collecte' }],
@@ -104,21 +103,44 @@ router.get('/:document', async (req: Request, res: Response) => {
             annee: mockParcour.annee
           }
         });
-        await docInstance.generate(verificationUrl, 'Protocole');
+        await docInstance.generate(verificationUrl, 'Protocle');
         break;
 
       case 'releve':
         docInstance = new DocumentReleve({
-          student: { nom: mockStudent.nom, sexe: mockStudent.sexe, matricule: mockStudent.matricule },
-          parcour: { promotion: mockParcour.promotion, annee: mockParcour.annee, filiere: 'BTP' },
-          notes: [
-            { code: 'MATH101', designation: 'Mathématiques', credit: 6, cc: 12, examen: 14, moyenne: 13 },
-            { code: 'PHYS101', designation: 'Physique', credit: 5, cc: 10, examen: 12, moyenne: 11 }
+          studentName: mockStudent.nom,
+          studentVille: mockStudent.ville,
+          studentDateNaiss: new Date(),
+          studentEmail: mockStudent.email,
+          studentPhone: mockStudent.telephone,
+          matricule: mockStudent.matricule,
+          programmeName: mockParcour.promotion,
+          anneeAcad: mockParcour.annee,
+          orderReference: 'REF-RELEVE-TEST',
+          serialNumber: 'SN-123456',
+          units: [
+            { 
+              semestre: 'S1', 
+              code: 'MATH101', 
+              designation: 'Mathématiques', 
+              statut: 'V', 
+              credit: 6, 
+              moyenne: 13,
+              elements: []
+            }
           ],
-          decision: { admis: true, mention: 'Assez Bien' },
+          summary: {
+            ncv: 6,
+            ncnv: 0,
+            totalObtenu: 78,
+            totalMax: 120,
+            pourcentage: 65,
+            mention: 'Assez Bien',
+            decision: 'Admis'
+          },
           verificationUrl
         });
-        await docInstance.generate();
+        await docInstance.generate(verificationUrl, { nom: 'Dr. Ir. KATEMBO', titre: 'Chef de Section' });
         break;
 
       default:

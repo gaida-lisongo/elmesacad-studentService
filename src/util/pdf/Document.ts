@@ -150,24 +150,21 @@ class Document {
     }
 
     async background(){
-
         const { fond } = await getSchoolPdfBrandingAssets();
+        
         this.docDefinition = {
             ...this.docDefinition,
-            background: (_currentPage: number, pageSize?: { width: number; height: number }) => {
+            background: (currentPage: number, pageSize?: { width: number; height: number }) => {
               const width = pageSize?.width ?? 595.28;
               const height = pageSize?.height ?? 841.89;
 
               return {
                 image: fond,
-                width: width * 1,
-                height: height * 0.8,
+                width: width,
+                height: height,
                 opacity: 0.1,
                 alignment: 'center',
-                absolutePosition: {
-                  x: (width - (width * 1)) / 2,
-                  y: (height - (height * 0.7)) / 2,
-                }
+                absolutePosition: { x: 0, y: 0 }
               };
             },
         }
@@ -554,8 +551,9 @@ class Document {
 
         return new Promise<Buffer>((resolve, reject) => {
             try {
-                pdfMake.createPdf(this.docDefinition).getBuffer((buffer: Buffer) => {
-                    resolve(buffer);
+                pdfMake.createPdf(this.docDefinition).getBuffer((buffer: any) => {
+                    // Convertir en Buffer Node.js explicite
+                    resolve(Buffer.from(buffer));
                 });
             } catch (err) {
                 reject(err);
