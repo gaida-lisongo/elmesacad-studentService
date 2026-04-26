@@ -12,6 +12,15 @@ export const baseResourceSchema = z.object({
   amount: z.number().nonnegative(),
   currency: z.string().default('USD'),
   status: z.string().default('active'),
+  branding: z.object({
+    institut: z.string().default('INBTP'),
+    section: z.string().min(1),
+    sectionRef: z.string().min(1),
+    chef: z.string().min(1),
+    contact: z.string().min(1),
+    email: z.string().email(),
+    adresse: z.string().min(1),
+  }).optional(),
 });
 
 const matiereSchema = z.object({

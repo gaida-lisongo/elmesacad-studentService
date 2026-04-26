@@ -3,9 +3,52 @@ import { OrderService } from '../../../services/order.service';
 import { EmailService } from '../../../services/email.service';
 import { orderUnionSchema } from '../../../schemas/order.schema';
 
+import { DocumentMappingService } from '../../../services/document-mapping.service';
+
 const router = Router();
 
 // --- Routes Étudiants ---
+
+// GET /api/commandes/verify/:id - Vérification publique
+router.get('/verify/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await OrderService.getById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, error: 'Commande non trouvée' });
+    
+    // On renvoie les infos essentielles pour la vérification
+    res.json({
+      success: true,
+      verified: true,
+      data: {
+        orderNumber: order.orderNumber,
+        reference: order.reference,
+        type: order.type,
+        student: order.parcoursId.student.nomComplet,
+        status: order.payment,
+        delivered: order.delivered
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/commandes/:id/download - Téléchargement du document
+router.get('/:id/download', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await OrderService.getById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, error: 'Commande non trouvée' });
+    if (order.payment !== 'success') return res.status(403).json({ success: false, error: 'Paiement non confirmé' });
+
+    const buffer = await DocumentMappingService.generateDocumentBuffer(order);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${order.orderNumber}.pdf`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // POST /api/commandes - Soumission d'une commande
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {

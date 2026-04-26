@@ -26,6 +26,15 @@ const ResourceSchema = new Schema({
   amount: { type: Number, required: true },
   currency: { type: String, default: 'USD' },
   status: { type: String, default: 'active' },
+  branding: {
+    institut: { type: String, default: 'INBTP' },
+    section: String,
+    sectionRef: String,
+    chef: String,
+    contact: String,
+    email: String,
+    adresse: String,
+  },
 }, {
   timestamps: true,
   discriminatorKey: 'categorie',

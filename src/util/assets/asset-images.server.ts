@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getAssetImageMeta, type AssetImageKey } from "@/lib/assets/asset-images";
+import { getAssetImageMeta, type AssetImageKey } from "./asset-images";
 
 const getMimeType = (filepath: string) => {
   const extension = path.extname(filepath).toLowerCase();

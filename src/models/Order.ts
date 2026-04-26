@@ -8,6 +8,9 @@ export interface IOrder extends Document {
   reference: string;
   payment: 'success' | 'pending' | 'failed';
   delivered: boolean;
+  validationStatus: 'pending' | 'validated' | 'rejected';
+  validationDate?: Date;
+  validatedBy?: string;
   type: 'labo' | 'stage' | 'sujet' | 'session' | 'resultat';
   createdAt: Date;
   updatedAt: Date;
@@ -21,6 +24,9 @@ const OrderSchema = new Schema({
   reference: { type: String, required: true, unique: true },
   payment: { type: String, enum: ['success', 'pending', 'failed'], default: 'pending' },
   delivered: { type: Boolean, default: false },
+  validationStatus: { type: String, enum: ['pending', 'validated', 'rejected'], default: 'pending' },
+  validationDate: { type: Date },
+  validatedBy: { type: String },
   type: { type: String, required: true },
 }, {
   timestamps: true,

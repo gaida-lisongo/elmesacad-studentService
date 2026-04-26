@@ -1,7 +1,7 @@
-import { PdfDocumentDefinition } from "@/lib/documents/Document";
-import { getSchoolPdfBrandingAssets, imageUrlToBase64 } from "@/lib/assets/asset-images.server";
+import { PdfDocumentDefinition } from "../../types/documents";
+import { getSchoolPdfBrandingAssets, imageUrlToBase64 } from "../assets/asset-images.server";
 import { createCanvas, loadImage } from 'canvas';
-import { getChef, getContact, getEmail } from "@/lib/documents/layout";
+import { getChef, getContact, getEmail, getInstitutSigle, getSchoolName, getAddress } from "../branding";
 
 
 export interface Note {
@@ -546,15 +546,21 @@ class Document {
         const pdfMakeModule = await import("pdfmake/build/pdfmake");
         const pdfFontsModule = await import("pdfmake/build/vfs_fonts");
 
-        const pdfMake = (pdfMakeModule.default ?? pdfMakeModule) as {
-        addVirtualFileSystem: (vfs: unknown) => void;
-        createPdf: (definition: PdfDocumentDefinition) => { getBuffer: () => Promise<Buffer> };
-        };
-        const pdfFonts = (pdfFontsModule.default ?? pdfFontsModule) as unknown;
+        const pdfMake = (pdfMakeModule.default ?? pdfMakeModule) as any;
+        const pdfFonts = (pdfFontsModule.default ?? pdfFontsModule) as any;
 
-        pdfMake.addVirtualFileSystem(pdfFonts);
+        const vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : (pdfFonts.vfs || pdfFonts);
+        pdfMake.vfs = vfs;
 
-        return pdfMake.createPdf(this.docDefinition).getBuffer();
+        return new Promise<Buffer>((resolve, reject) => {
+            try {
+                pdfMake.createPdf(this.docDefinition).getBuffer((buffer: Buffer) => {
+                    resolve(buffer);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
 

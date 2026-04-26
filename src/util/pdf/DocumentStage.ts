@@ -1,6 +1,11 @@
-import { type DocumentStagePayload } from "@/lib/documents/stage-letter";
+import { type DocumentStagePayload } from "../../schemas/order.schema";
 import Document from "./Document";
-import { StudentDocumentIdentity } from "@/lib/documents/Document";
+
+type StudentDocumentIdentity = {
+    fullName: string;
+    matricule: string;
+    email: string;
+};
 
 type Lettre = {
     type: string, 

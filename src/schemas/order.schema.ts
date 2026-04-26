@@ -11,6 +11,9 @@ export const baseOrderSchema = z.object({
   telephone: z.string().min(1),
   payment: z.enum(['success', 'pending', 'failed']).default('pending'),
   delivered: z.boolean().default(false),
+  validationStatus: z.enum(['pending', 'validated', 'rejected']).default('pending'),
+  validationDate: z.string().optional(),
+  validatedBy: z.string().optional(),
   type: z.enum(['labo', 'stage', 'sujet', 'session', 'resultat']),
 });
 
@@ -30,6 +33,15 @@ export const orderStageSchema = baseOrderSchema.extend({
   companyLocation: z.string().min(1),
   documentReference: z.string().optional(),
 });
+
+export type DocumentStagePayload = z.infer<typeof orderStageSchema> & {
+    student: {
+        fullName: string;
+        matricule: string;
+        email: string;
+    }
+};
+
 
 export const orderSujetSchema = baseOrderSchema.extend({
   type: z.literal('sujet'),

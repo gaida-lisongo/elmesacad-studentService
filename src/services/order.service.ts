@@ -113,7 +113,23 @@ export class OrderService {
     const order = await OrderModel.findById(orderId).populate('parcoursId ressourceId');
     if (!order) return;
 
-    const emails = [
+    const student = (order.parcoursId as any).student;
+    const ressource = (order.ressourceId as any);
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const downloadUrl = `${appUrl}/api/commandes/${order._id}/download`;
+    const verificationUrl = `${appUrl}/api/commandes/verify/${order._id}`;
+
+    // Envoi de l'email stylisé à l'étudiant
+    await EmailService.sendDocumentReadyEmail(
+      student.email,
+      student.nomComplet,
+      ressource.designation || order.type,
+      downloadUrl,
+      verificationUrl
+    );
+
+    // Notification aux administrateurs (optionnel, on garde les emails demandés)
+    const adminEmails = [
       'nathan@elmes-solution.site',
       'lisongobaita@gmail.com',
       'electromecatronique01@gmail.com',
@@ -121,13 +137,13 @@ export class OrderService {
     ];
 
     await EmailService.sendEmail({
-      to: emails,
-      subject: `Confirmation de paiement - Commande ${order.orderNumber}`,
+      to: adminEmails,
+      subject: `Notification : Document prêt - ${student.nomComplet}`,
       html: `
-        <h1>Paiement Confirmé</h1>
-        <p>La commande <strong>${order.orderNumber}</strong> (${order.type}) a été payée avec succès.</p>
+        <h1>Document Prêt</h1>
+        <p>L'étudiant <strong>${student.nomComplet}</strong> (${student.matricule}) a payé pour le document : <strong>${ressource.designation}</strong>.</p>
         <p>Référence : ${order.reference}</p>
-        <p>Lien de suivi : <a href="https://elmes-acad.com/orders/${order._id}">Cliquez ici pour suivre votre commande</a></p>
+        <p>Lien de téléchargement : <a href="${downloadUrl}">${downloadUrl}</a></p>
       `
     });
   }
