@@ -2,6 +2,27 @@ import Parcours, { IParcours } from '../models/Parcours';
 import { ParcoursCreate, ParcoursUpdate } from '../schemas/parcours.schema';
 
 export class ParcoursService {
+  private static escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Tous les parcours d’un étudiant, identifié par son email (comparaison insensible à la casse).
+   */
+  static async findByStudentEmail(email: string) {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      return [];
+    }
+    return Parcours.find({
+      'student.email': {
+        $regex: new RegExp(`^${this.escapeRegex(trimmed)}$`, 'i'),
+      },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
   /**
    * Récupérer les parcours avec pagination et filtres
    */

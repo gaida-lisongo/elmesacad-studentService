@@ -9,6 +9,29 @@ import { z } from 'zod';
 
 const router = Router();
 
+const studentEmailQuerySchema = z.object({
+  email: z
+    .string({ required_error: 'Le paramètre email est requis' })
+    .min(1)
+    .email('Adresse email invalide'),
+});
+
+// GET /api/parcours/by-student-email?email=etudiant@ecole.cd
+// (déclaré avant GET / pour ne pas être confondu avec une autre route)
+router.get('/by-student-email', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = studentEmailQuerySchema.parse({ email: req.query.email });
+    const data = await ParcoursService.findByStudentEmail(email);
+    res.json({
+      success: true,
+      data,
+      count: data.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/parcours
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {

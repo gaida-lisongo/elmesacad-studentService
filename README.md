@@ -6,6 +6,7 @@ Microservice de gestion des parcours étudiants, des ressources académiques et 
 
 ### 🎓 Parcours (Student Programs)
 - `GET /api/parcours` : Liste paginée des parcours (Filtres : `search`, `filiere`, `annee`).
+- `GET /api/parcours/by-student-email?email=<email>` : Tous les parcours d’un étudiant, identifié par son **adresse email** (comparaison insensible à la casse). Réponse : `{ success, data: Parcours[], count }` (tableau vide si aucun parcours).
 - `POST /api/parcours` : Création unitaire ou bulk (si tableau fourni).
 - `PATCH /api/parcours` : Mise à jour massive via un tableau d'objets avec `_id`.
 - `DELETE /api/parcours` : Suppression multiple via `{ ids: string[] }`.
@@ -28,6 +29,26 @@ Microservice de gestion des parcours étudiants, des ressources académiques et 
 - `POST /api/commandes/test/email` : Test manuel d'envoi d'email groupé.
 
 ## 📖 Exemples de requêtes (cURL)
+
+### Parcours d’un étudiant par email
+
+Récupère **tous** les enregistrements de parcours dont le champ `student.email` correspond (ex. même étudiant sur plusieurs années académiques).
+
+```bash
+# Local
+curl -sS "http://localhost:3000/api/parcours/by-student-email?email=nathan%40example.com"
+
+# Derrière Traefik (ex. stack Elmesacad)
+curl -sS -H "Authorization: Bearer <JWT>" \
+  "https://services.inbtp.ac.cd/student/api/parcours/by-student-email?email=nathan%40example.com"
+```
+
+**Réponses**
+
+| Code | Corps (schéma) |
+|------|----------------|
+| `200` | `{ "success": true, "data": [ { ...parcours } ], "count": <number> }` |
+| `400` | Paramètre `email` manquant ou invalide (validation Zod : `success: false`, `details`) |
 
 ### 1. Créer un Parcours (Étudiant)
 ```bash

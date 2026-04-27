@@ -62,6 +62,7 @@ const ParcoursSchema: Schema = new Schema({
 // Index pour la recherche
 ParcoursSchema.index({ 'student.nomComplet': 'text' });
 ParcoursSchema.index({ 'student.matricule': 1 });
+ParcoursSchema.index({ 'student.email': 1 });
 ParcoursSchema.index({ 'programme.filiere': 1 });
 ParcoursSchema.index({ 'annee.slug': 1 });
 

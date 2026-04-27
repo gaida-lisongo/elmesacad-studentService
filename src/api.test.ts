@@ -16,6 +16,20 @@ describe('API Tests', () => {
     expect(res.body.success).toBe(true);
   });
 
+  it('should return 400 when by-student-email is missing email', async () => {
+    const res = await request(app).get('/api/parcours/by-student-email');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should return 400 when by-student-email has invalid email', async () => {
+    const res = await request(app).get(
+      '/api/parcours/by-student-email?email=not-an-email',
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
   it('should create a new Labo resource', async () => {
     const laboResource = {
       categorie: 'labo',
