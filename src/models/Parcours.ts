@@ -64,6 +64,8 @@ ParcoursSchema.index({ 'student.nomComplet': 'text' });
 ParcoursSchema.index({ 'student.matricule': 1 });
 ParcoursSchema.index({ 'student.email': 1 });
 ParcoursSchema.index({ 'programme.filiere': 1 });
+ParcoursSchema.index({ 'programme.classe': 1 });
 ParcoursSchema.index({ 'annee.slug': 1 });
+ParcoursSchema.index({ status: 1 });
 
 export default mongoose.model<IParcours>('Parcours', ParcoursSchema);

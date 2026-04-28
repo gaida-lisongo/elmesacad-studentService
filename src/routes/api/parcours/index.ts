@@ -3,7 +3,8 @@ import { ParcoursService } from '../../../services/parcours.service';
 import { 
   parcoursCreateSchema, 
   bulkParcoursCreateSchema, 
-  bulkParcoursUpdateSchema 
+  bulkParcoursUpdateSchema,
+  parcoursListQuerySchema,
 } from '../../../schemas/parcours.schema';
 import { z } from 'zod';
 
@@ -32,18 +33,24 @@ router.get('/by-student-email', async (req: Request, res: Response, next: NextFu
   }
 });
 
-// GET /api/parcours
+// GET /api/parcours — filtres cumulés (ET) : voir parcoursListQuerySchema
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const filters = {
-      search: req.query.search as string,
-      filiere: req.query.filiere as string,
-      annee: req.query.annee as string,
-      page: req.query.page ? parseInt(req.query.page as string) : 1,
-      limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
-    };
+    const q = parcoursListQuerySchema.parse(req.query);
+    const programmeClasse = q.programme_classe?.trim() || q.classe?.trim();
+    const programmeFiliere = q.programme_filiere?.trim() || q.filiere?.trim();
+    const anneeSlug = q.annee_slug?.trim() || q.annee?.trim();
 
-    const result = await ParcoursService.getAll(filters);
+    const result = await ParcoursService.getAll({
+      search: q.search?.trim(),
+      programmeClasse,
+      programmeFiliere,
+      anneeSlug,
+      status: q.status,
+      reference: q.reference?.trim(),
+      page: q.page,
+      limit: q.limit,
+    });
     res.json({
       success: true,
       data: result.data,

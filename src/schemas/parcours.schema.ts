@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const parcoursStatusValues = ['inscrit', 'suspendu', 'abandon', 'diplômé'] as const;
+
 export const studentSchema = z.object({
   email: z.string().email(),
   matricule: z.string().min(1),
@@ -27,7 +29,7 @@ export const parcoursCreateSchema = z.object({
   student: studentSchema,
   programme: programmeSchema,
   annee: anneeSchema,
-  status: z.enum(['inscrit', 'suspendu', 'abandon', 'diplômé']).default('inscrit'),
+  status: z.enum(parcoursStatusValues).default('inscrit'),
   ncv: z.number().nonnegative().optional(),
   reference: z.string().min(1),
 });
@@ -38,6 +40,24 @@ export const parcoursUpdateSchema = parcoursCreateSchema.partial().extend({
 
 export const bulkParcoursCreateSchema = z.array(parcoursCreateSchema);
 export const bulkParcoursUpdateSchema = z.array(parcoursUpdateSchema);
+
+/** Query string pour GET /api/parcours — filtres cumulés (ET), pagination optionnelle. */
+export const parcoursListQuerySchema = z.object({
+  search: z.string().optional(),
+  /** Filtre `programme.classe` — alias accepté : `programme_classe`. */
+  classe: z.string().optional(),
+  programme_classe: z.string().optional(),
+  /** `programme.filiere` — alias legacy : `filiere`. */
+  filiere: z.string().optional(),
+  programme_filiere: z.string().optional(),
+  /** Slug année (`annee.slug`) — alias : `annee_slug`. */
+  annee: z.string().optional(),
+  annee_slug: z.string().optional(),
+  status: z.enum(parcoursStatusValues).optional(),
+  reference: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(200).optional(),
+});
 
 export type ParcoursCreate = z.infer<typeof parcoursCreateSchema>;
 export type ParcoursUpdate = z.infer<typeof parcoursUpdateSchema>;

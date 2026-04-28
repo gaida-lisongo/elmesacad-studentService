@@ -5,11 +5,131 @@ Microservice de gestion des parcours étudiants, des ressources académiques et 
 ## 🚀 Endpoints API
 
 ### 🎓 Parcours (Student Programs)
-- `GET /api/parcours` : Liste paginée des parcours (Filtres : `search`, `filiere`, `annee`).
-- `GET /api/parcours/by-student-email?email=<email>` : Tous les parcours d’un étudiant, identifié par son **adresse email** (comparaison insensible à la casse). Réponse : `{ success, data: Parcours[], count }` (tableau vide si aucun parcours).
-- `POST /api/parcours` : Création unitaire ou bulk (si tableau fourni).
-- `PATCH /api/parcours` : Mise à jour massive via un tableau d'objets avec `_id`.
-- `DELETE /api/parcours` : Suppression multiple via `{ ids: string[] }`.
+
+Vue d’ensemble : préfixe **`/api/parcours`** (ex. derrière Traefik : `https://services.inbtp.ac.cd/student/api/parcours`).
+
+| Méthode | Chemin | Description |
+|--------|--------|-------------|
+| `GET` | `/api/parcours` | Liste **paginée** ; filtres combinables (voir ci‑dessous) |
+| `GET` | `/api/parcours/by-student-email` | Tous les parcours d’un étudiant par **email** |
+| `POST` | `/api/parcours` | Création **unitaire** (objet JSON) ou **bulk** (tableau) |
+| `PATCH` | `/api/parcours` | Mise à jour **bulk** — tableau d’objets avec `_id` |
+| `DELETE` | `/api/parcours` | Suppression **bulk** — `{ "ids": string[] }` |
+
+#### `GET /api/parcours` — filtres (query string)
+
+Tous les filtres sont **optionnels** ; s’ils sont présents, ils se **combinent** par **ET** avec la pagination.
+
+| Paramètre | Champ MongoDB | Notes |
+|-----------|----------------|--------|
+| `search` | `student.matricule` (égalité) **ou** `student.nomComplet` (regex insensible à la casse) | |
+| `classe` ou `programme_classe` | `programme.classe` | `programme_classe` est un alias explicite |
+| `filiere` ou `programme_filiere` | `programme.filiere` | `filiere` / `annee` restent les noms historiques |
+| `annee` ou `annee_slug` | `annee.slug` | ex. `2025-2026` |
+| `status` | `status` | Une seule valeur : `inscrit`, `suspendu`, `abandon`, `diplômé` |
+| `reference` | `reference` | Référence unique du parcours |
+| `page` | — | Page (défaut `1`) |
+| `limit` | — | Taille de page (défaut `10`, max `200`) |
+
+Exemple (L3 BTP, année 2025-2026, inscrits) :
+
+```text
+GET /api/parcours?classe=L3&filiere=BTP&annee=2025-2026&status=inscrit&page=1&limit=20
+```
+
+**Réponses `GET /api/parcours`**
+
+| Code | Corps |
+|------|--------|
+| `200` | `{ "success": true, "data": [ Parcours ], "meta": { "total": number, "page": number, "limit": number } }` |
+| `400` | Erreur Zod (ex. `status` invalide) — format géré par votre middleware d’erreurs |
+
+#### `GET /api/parcours/by-student-email`
+
+Query : `email` (obligatoire, email valide).
+
+| Code | Corps |
+|------|--------|
+| `200` | `{ "success": true, "data": [ Parcours ], "count": number }` |
+| `400` | Email manquant ou invalide |
+
+#### `POST /api/parcours` — création unitaire
+
+**Corps (JSON)** — schéma aligné sur le modèle :
+
+```json
+{
+  "student": {
+    "email": "etudiant@example.com",
+    "matricule": "2026001",
+    "sexe": "M",
+    "nomComplet": "Nom Complet",
+    "photo": "https://example.com/photo.jpg",
+    "nationalite": "CD",
+    "date_naissance": "2000-01-15",
+    "lieu_naissance": "Kinshasa"
+  },
+  "programme": {
+    "classe": "L3",
+    "filiere": "BTP",
+    "credits": 60
+  },
+  "annee": {
+    "debut": "2025",
+    "fin": "2026",
+    "slug": "2025-2026"
+  },
+  "status": "inscrit",
+  "ncv": 0,
+  "reference": "2025-2026-2026001-UNIQUE"
+}
+```
+
+| Code | Corps |
+|------|--------|
+| `201` | `{ "success": true, "data": <document créé> }` |
+| `400` | Validation Zod (champs requis, formats) |
+
+#### `POST /api/parcours` — création bulk
+
+**Corps** : **tableau** d’objets du même schéma que la création unitaire.
+
+| Code | Corps |
+|------|--------|
+| `201` | `{ "success": true, "data": <résultat bulkWrite MongoDB> }` |
+| `400` | Validation |
+
+#### `PATCH /api/parcours` — mise à jour bulk
+
+**Corps** : tableau d’objets contenant au minimum `_id` ; les autres champs reprennent le schéma parcours en **partiel**.
+
+```json
+[
+  {
+    "_id": "65f1a2b3c4d5e6f7a8b9c0d1",
+    "status": "diplômé",
+    "student": { "nomComplet": "Nouveau nom" }
+  }
+]
+```
+
+| Code | Corps |
+|------|--------|
+| `200` | `{ "success": true, "data": <résultat bulkWrite> }` |
+| `400` | Validation |
+
+#### `DELETE /api/parcours`
+
+**Corps** :
+
+```json
+{ "ids": ["65f1a2b3c4d5e6f7a8b9c0d1", "65f1a2b3c4d5e6f7a8b9c0d2"] }
+```
+
+| Code | Corps |
+|------|--------|
+| `200` | `{ "success": true, "data": <résultat deleteMany> }` |
+| `400` | `ids` invalide |
 
 ### 📚 Ressources (Available Documents)
 - `GET /api/resources` : Liste des ressources disponibles (Filtres : `category`, `status`, `search`).

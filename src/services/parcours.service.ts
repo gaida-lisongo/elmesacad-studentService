@@ -1,4 +1,4 @@
-import Parcours, { IParcours } from '../models/Parcours';
+import Parcours from '../models/Parcours';
 import { ParcoursCreate, ParcoursUpdate } from '../schemas/parcours.schema';
 
 export class ParcoursService {
@@ -24,32 +24,64 @@ export class ParcoursService {
   }
 
   /**
-   * Récupérer les parcours avec pagination et filtres
+   * Récupérer les parcours avec pagination et filtres (critères cumulés en ET).
    */
   static async getAll(filters: {
     search?: string;
+    /** Alias legacy : même effet que programmeFiliere */
     filiere?: string;
+    programmeClasse?: string;
+    programmeFiliere?: string;
+    /** Slug année académique (ex. 2025-2026) */
+    anneeSlug?: string;
+    /** Alias legacy : même effet que anneeSlug */
     annee?: string;
+    status?: string;
+    reference?: string;
     page?: number;
     limit?: number;
   }) {
-    const { search, filiere, annee, page = 1, limit = 10 } = filters;
-    const query: any = {};
+    const {
+      search,
+      filiere,
+      programmeClasse,
+      programmeFiliere,
+      annee,
+      anneeSlug,
+      status,
+      reference,
+      page = 1,
+      limit = 10,
+    } = filters;
+    const query: Record<string, unknown> = {};
 
     if (search) {
-      // Recherche exacte sur matricule ou partielle sur nomComplet
       query.$or = [
         { 'student.matricule': search },
-        { 'student.nomComplet': { $regex: search, $options: 'i' } }
+        { 'student.nomComplet': { $regex: search, $options: 'i' } },
       ];
     }
 
-    if (filiere) {
-      query['programme.filiere'] = filiere;
+    if (programmeClasse?.trim()) {
+      query['programme.classe'] = programmeClasse.trim();
     }
 
-    if (annee) {
-      query['annee.slug'] = annee;
+    const filiereValue = programmeFiliere?.trim() || filiere?.trim();
+    if (filiereValue) {
+      query['programme.filiere'] = filiereValue;
+    }
+
+    const slug = anneeSlug?.trim() || annee?.trim();
+    if (slug) {
+      query['annee.slug'] = slug;
+    }
+
+    if (status?.trim()) {
+      query.status = status.trim();
+    }
+
+    if (reference?.trim()) {
+      query.reference = reference.trim();
     }
 
     const skip = (page - 1) * limit;
