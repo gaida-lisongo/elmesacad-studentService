@@ -136,4 +136,11 @@ export class ParcoursService {
   static async bulkDelete(ids: string[]) {
     return await Parcours.deleteMany({ _id: { $in: ids } });
   }
+
+  /**
+   * Suppression unitaire par identifiant MongoDB
+   */
+  static async deleteById(id: string) {
+    return await Parcours.findByIdAndDelete(id);
+  }
 }

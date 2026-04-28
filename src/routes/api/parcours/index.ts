@@ -5,6 +5,7 @@ import {
   bulkParcoursCreateSchema, 
   bulkParcoursUpdateSchema,
   parcoursListQuerySchema,
+  normalizeBulkParcoursCreateBody,
 } from '../../../schemas/parcours.schema';
 import { z } from 'zod';
 
@@ -65,11 +66,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// POST /api/parcours (Unitaire ou Bulk)
+// POST /api/parcours (Unitaire ou Bulk — corps : tableau direct ou par erreur `[ [ ... ] ]`)
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (Array.isArray(req.body)) {
-      const validatedData = bulkParcoursCreateSchema.parse(req.body);
+      const flattened = normalizeBulkParcoursCreateBody(req.body);
+      const validatedData = bulkParcoursCreateSchema.parse(flattened);
       const result = await ParcoursService.bulkCreate(validatedData);
       res.status(201).json({ success: true, data: result });
     } else {
@@ -93,12 +95,30 @@ router.patch('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// DELETE /api/parcours (Bulk delete)
+// DELETE /api/parcours (Bulk delete — corps JSON)
 router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ids } = z.object({ ids: z.array(z.string()) }).parse(req.body);
     const result = await ParcoursService.bulkDelete(ids);
     res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const objectIdParam = z.object({
+  id: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Identifiant MongoDB invalide'),
+});
+
+// DELETE /api/parcours/:id — suppression unitaire (déclaré après les routes « fixes »)
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = objectIdParam.parse(req.params);
+    const deleted = await ParcoursService.deleteById(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Parcours non trouvé' });
+    }
+    return res.json({ success: true, data: deleted });
   } catch (error) {
     next(error);
   }

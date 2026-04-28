@@ -8,13 +8,21 @@ Microservice de gestion des parcours étudiants, des ressources académiques et 
 
 Vue d’ensemble : préfixe **`/api/parcours`** (ex. derrière Traefik : `https://services.inbtp.ac.cd/student/api/parcours`).
 
+**Pièges fréquents (404)** — le conteneur reçoit le chemin **après** le strip `/student` :
+
+| Erreur côté client | Chemin vu par Express | Correction |
+|--------------------|------------------------|-------------|
+| Base déjà `/student/api`, path encore `/api/parcours` | `/api/api/parcours` | Un seul segment `/api` : utiliser soit `base=https://host/student` + `fetch('/api/parcours…')`, soit URL absolue `fetch('https://host/student/api/parcours…')`. |
+| Concaténer une **URL complète** derrière `/api/` | `/api/https:/services…` | Ne concaténez **pas** deux bases : une seule URL finale en string. |
+
 | Méthode | Chemin | Description |
 |--------|--------|-------------|
 | `GET` | `/api/parcours` | Liste **paginée** ; filtres combinables (voir ci‑dessous) |
 | `GET` | `/api/parcours/by-student-email` | Tous les parcours d’un étudiant par **email** |
 | `POST` | `/api/parcours` | Création **unitaire** (objet JSON) ou **bulk** (tableau) |
 | `PATCH` | `/api/parcours` | Mise à jour **bulk** — tableau d’objets avec `_id` |
-| `DELETE` | `/api/parcours` | Suppression **bulk** — `{ "ids": string[] }` |
+| `DELETE` | `/api/parcours` | Suppression **bulk** — `{ "ids": string[] }` (corps JSON) |
+| `DELETE` | `/api/parcours/:id` | Suppression **unitaire** par `_id` MongoDB — **sans** corps JSON |
 
 #### `GET /api/parcours` — filtres (query string)
 
@@ -92,12 +100,19 @@ Query : `email` (obligatoire, email valide).
 
 #### `POST /api/parcours` — création bulk
 
-**Corps** : **tableau** d’objets du même schéma que la création unitaire.
+**Corps** : **un seul tableau** d’objets, même schéma que la création unitaire :
+
+```json
+[ { "student": { ... }, "programme": { ... }, ... }, { ... } ]
+```
+
+- **À ne pas faire** : envelopper une seconde fois en `[[ {...}, {...} ]]` — certains outils le font par erreur ; le service **dé-enveloppe** automatiquement uniquement le cas `[[ ... ]]` (un seul bloc extérieur).
+- **`student.photo`** : si vous n’avez pas d’URL, omettez le champ ou envoyez `""` (chaîne vide acceptée).
 
 | Code | Corps |
 |------|--------|
 | `201` | `{ "success": true, "data": <résultat bulkWrite MongoDB> }` |
-| `400` | Validation |
+| `400` | Validation Zod (voir message d’erreur : email, photo devant être une URL si fournie, etc.) |
 
 #### `PATCH /api/parcours` — mise à jour bulk
 
@@ -130,6 +145,16 @@ Query : `email` (obligatoire, email valide).
 |------|--------|
 | `200` | `{ "success": true, "data": <résultat deleteMany> }` |
 | `400` | `ids` invalide |
+
+#### `DELETE /api/parcours/:id` — suppression unitaire
+
+Aucun corps. L’`_id` est un ObjectId hexadécimal sur 24 caractères.
+
+| Code | Corps |
+|------|--------|
+| `200` | `{ "success": true, "data": <document supprimé> }` |
+| `400` | Identifiant mal formé (Zod) |
+| `404` | `{ "success": false, "message": "Parcours non trouvé" }` |
 
 ### 📚 Ressources (Available Documents)
 - `GET /api/resources` : Liste des ressources disponibles (Filtres : `category`, `status`, `search`).

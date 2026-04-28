@@ -6,7 +6,11 @@ export const studentSchema = z.object({
   email: z.string().email(),
   matricule: z.string().min(1),
   sexe: z.enum(['M', 'F']),
-  photo: z.string().url().optional(),
+  /** Chaîne vide acceptée (souvent import Excel) — traitée comme absence de photo. */
+  photo: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().url().optional(),
+  ),
   nomComplet: z.string().min(1),
   nationalite: z.string().optional(),
   date_naissance: z.string().optional(),
@@ -38,7 +42,19 @@ export const parcoursUpdateSchema = parcoursCreateSchema.partial().extend({
   _id: z.string(),
 });
 
+/** Corps attendu : `[ Parcours, ... ]`. Un seul niveau de tableau. */
 export const bulkParcoursCreateSchema = z.array(parcoursCreateSchema);
+
+/**
+ * Accepte aussi le format par erreur client `[[ Parcours, ... ]]` (tableau doublement wrappé).
+ */
+export function normalizeBulkParcoursCreateBody(body: unknown): unknown {
+  if (!Array.isArray(body)) return body;
+  if (body.length === 1 && Array.isArray(body[0])) {
+    return body[0];
+  }
+  return body;
+}
 export const bulkParcoursUpdateSchema = z.array(parcoursUpdateSchema);
 
 /** Query string pour GET /api/parcours — filtres cumulés (ET), pagination optionnelle. */
