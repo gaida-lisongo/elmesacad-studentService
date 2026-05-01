@@ -177,7 +177,7 @@ Préfixe: **`/api/resources`**
 | `description` | `Array<{ title: string, contenu: string[] }>` | Oui | Sections de contenu |
 | `amount` | `number` (>= 0) | Oui | Montant |
 | `currency` | `string` | Non | `USD` |
-| `status` | `string` | Non | `active` |
+| `status` | `literal "inactive"` (POST) | Non | Défaut **`inactive`**. `active` est **refusé** à la création ; utilisez `PATCH /api/resources/:id` avec `"status": "active"` pour publier la ressource. |
 | `branding.institut` | `string` | Non | `INBTP` |
 | `branding.section` | `string` | Non | `""` |
 | `branding.sectionRef` | `string` | Non | `""` |
@@ -187,6 +187,8 @@ Préfixe: **`/api/resources`**
 | `branding.adresse` | `string` | Non | `""` |
 
 #### Champs spécifiques par `categorie` (création `POST /api/resources`)
+
+À la **création**, le corps ne peut pas contenir `"status": "active"` : seul `inactive` est accepté (souvent omis, la valeur par défaut s’applique).
 
 | Catégorie | Champs supplémentaires requis | Champs optionnels |
 |----------|-------------------------------|-------------------|

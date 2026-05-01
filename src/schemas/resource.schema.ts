@@ -11,7 +11,8 @@ export const baseResourceSchema = z.object({
   description: z.array(sectionSchema),
   amount: z.number().nonnegative(),
   currency: z.string().default('USD'),
-  status: z.string().default('active'),
+  /** À la création, toujours inactif ; passez en `active` via PATCH après validation. */
+  status: z.literal('inactive').default('inactive'),
   branding: z.object({
     institut: z.string().default('INBTP'),
     section: z.string().optional().default(''),

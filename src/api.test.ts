@@ -37,13 +37,14 @@ describe('API Tests', () => {
       description: [{ title: 'Objectif', contenu: ['Mesurer la porosité'] }],
       amount: 50,
       currency: 'USD',
-      status: 'active',
+      status: 'inactive',
       matiere: { reference: 'MAT001', designation: 'Géotechnique', credit: '5' },
       titulaire: { reference: 'PROF001', email: 'prof@inbtp.ac.cd', matricule: 'M123', nom: 'Jean Dupont' }
     };
     const res = await request(app).post('/api/resources').send(laboResource);
     expect(res.status).toBe(201);
     expect(res.body.data.categorie).toBe('labo');
+    expect(res.body.data.status).toBe('inactive');
   });
 
   it('should return 400 for GET /api/commandes without parcoursId', async () => {
@@ -112,11 +113,12 @@ describe('API Tests', () => {
 
     // 2. Créer une ressource
     const resourceRes = await request(app).post('/api/resources').send({
-      type: 'labo',
+      categorie: 'labo',
       designation: 'Labo de Test',
-      category: 'labo',
+      description: [{ title: 'Infos', contenu: ['Test'] }],
       amount: 50,
-      status: 'active'
+      matiere: { reference: 'MAT-TEST' },
+      titulaire: { nom: 'Prof Test' },
     });
     const resourceId = resourceRes.body.data._id;
 

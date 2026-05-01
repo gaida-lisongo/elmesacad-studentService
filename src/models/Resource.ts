@@ -25,7 +25,7 @@ const ResourceSchema = new Schema({
   description: [SectionSchema],
   amount: { type: Number, required: true },
   currency: { type: String, default: 'USD' },
-  status: { type: String, default: 'active' },
+  status: { type: String, default: 'inactive' },
   branding: {
     institut: { type: String, default: 'INBTP' },
     section: { type: String, default: '' },

@@ -21,8 +21,12 @@ describe('Comprehensive Order Workflow Scenario', () => {
     parcoursId = p.body.data._id;
 
     const r = await request(app).post('/api/resources').send({
-      type: 'labo', designation: 'Laboratoire de Physique', category: 'labo', amount: 100, status: 'active',
-      reference: 'REF-LABO-TEST',
+      categorie: 'labo',
+      designation: 'Laboratoire de Physique',
+      description: [{ title: 'Objectif', contenu: ['TP'] }],
+      amount: 100,
+      matiere: { reference: 'REF-LABO-TEST' },
+      titulaire: { nom: 'Dr. Test' },
       branding: {
         institut: 'INBTP',
         section: 'BTP',
