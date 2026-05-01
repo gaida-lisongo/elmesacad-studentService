@@ -46,6 +46,18 @@ describe('API Tests', () => {
     expect(res.body.data.categorie).toBe('labo');
   });
 
+  it('should return 400 for GET /api/commandes without parcoursId', async () => {
+    const res = await request(app).get('/api/commandes');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should return 400 for GET /api/commandes with invalid parcoursId', async () => {
+    const res = await request(app).get('/api/commandes?parcoursId=not-an-objectid');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
   it('should reject a CommandeSujet if objectif is empty', async () => {
     const invalidSujet = {
       type: 'sujet',

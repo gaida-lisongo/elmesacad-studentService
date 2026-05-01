@@ -157,21 +157,239 @@ Aucun corps. L’`_id` est un ObjectId hexadécimal sur 24 caractères.
 | `404` | `{ "success": false, "message": "Parcours non trouvé" }` |
 
 ### 📚 Ressources (Available Documents)
-- `GET /api/resources` : Liste des ressources disponibles (Filtres : `category`, `status`, `search`).
-- `POST /api/resources` : Création d'une nouvelle ressource (Admin).
-- `PATCH /api/resources/:id` : Modification d'une ressource.
-- `DELETE /api/resources/:id` : Suppression d'une ressource.
+
+Préfixe: **`/api/resources`**
+
+| Méthode | Chemin | Description |
+|--------|--------|-------------|
+| `GET` | `/api/resources` | Liste des ressources (filtres `categorie`, `status`, `search`) |
+| `GET` | `/api/resources/:id` | Détail d’une ressource par `_id` |
+| `POST` | `/api/resources` | Création d’une ressource (schéma discriminé par `categorie`) |
+| `PATCH` | `/api/resources/:id` | Mise à jour partielle d’une ressource |
+| `DELETE` | `/api/resources/:id` | Suppression d’une ressource |
+
+#### Types communs (toutes les ressources)
+
+| Champ | Type | Requis | Valeur par défaut / Notes |
+|------|------|--------|---------------------------|
+| `categorie` | `string` (`labo`, `stage`, `sujet`, `session`, `validation`, `releve`) | Oui | Clé discriminante |
+| `designation` | `string` | Oui | Libellé affiché |
+| `description` | `Array<{ title: string, contenu: string[] }>` | Oui | Sections de contenu |
+| `amount` | `number` (>= 0) | Oui | Montant |
+| `currency` | `string` | Non | `USD` |
+| `status` | `string` | Non | `active` |
+| `branding.institut` | `string` | Non | `INBTP` |
+| `branding.section` | `string` | Non | `""` |
+| `branding.sectionRef` | `string` | Non | `""` |
+| `branding.chef` | `string` | Non | `""` |
+| `branding.contact` | `string` | Non | `""` |
+| `branding.email` | `string` | Non | `""` |
+| `branding.adresse` | `string` | Non | `""` |
+
+#### Champs spécifiques par `categorie` (création `POST /api/resources`)
+
+| Catégorie | Champs supplémentaires requis | Champs optionnels |
+|----------|-------------------------------|-------------------|
+| `labo` | `matiere.reference`, `titulaire.nom` | `matiere.designation`, `matiere.credit`, `titulaire.reference`, `titulaire.email`, `titulaire.matricule`, `note` |
+| `stage` | `matiere.reference`, `titulaire.nom` | identiques à `labo` |
+| `sujet` | `matiere.reference`, `lecteurs[]` (chaque lecteur doit avoir `nom`) | `matiere.credit`, infos optionnelles des lecteurs, `note` |
+| `session` | `matieres[]` | Chaque matière peut contenir `reference`, `designation`, `credit` |
+| `validation` | `programme.classe`, `programme.filiere`, `programme.credits`, `annee.slug` | `annee.debut`, `annee.fin` |
+| `releve` | `programme.classe`, `programme.filiere`, `programme.credits`, `annee.slug` | `annee.debut`, `annee.fin` |
+
+#### Lecture des ressources
+
+##### `GET /api/resources` — filtres
+
+Tous les filtres sont optionnels et combinés par **ET**.
+
+| Paramètre | Type | Effet |
+|----------|------|-------|
+| `categorie` | `string` | Filtre exact sur `categorie` |
+| `status` | `string` | Filtre exact sur `status` |
+| `search` ou `designation` | `string` | Recherche partielle (regex insensible à la casse) sur `designation` |
+| `page` | `number` | Numéro de page (défaut `1`) |
+| `limit` | `number` | Taille de page (défaut `10`, max `200`) |
+| `sortBy` | `string` | Champ de tri (défaut `createdAt`) |
+| `sortOrder` | `asc \| desc` | Sens du tri (défaut `desc`) |
+| `criteria` | `string` (JSON) | Critères dynamiques JSON (objet) |
+
+**Critères dynamiques / multi-critères**
+- Vous pouvez envoyer des critères additionnels directement en query string (hors clés réservées), ex. `branding.section=BTP&amount__gte=10`.
+- Opérateurs supportés via suffixe `__`: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `regex`.
+- Exemples:
+  - `amount__gte=10&amount__lte=50`
+  - `categorie__in=labo,stage`
+  - `branding.section__regex=btp`
+  - `criteria={"branding.section":"BTP","amount__gte":10}`
+
+**Réponse**
+- `200`: `{ "success": true, "data": [ Resource ], "meta": { "total": number, "page": number, "limit": number } }`
+
+##### `GET /api/resources/:id`
+
+- `200`: `{ "success": true, "data": Resource }`
+- `404`: `{ "success": false, "error": "Resource not found" }`
+
+#### Modification et suppression des ressources
+
+##### `PATCH /api/resources/:id`
+
+- Corps: objet JSON partiel (les champs à modifier).
+- Note: cette route ne passe pas par un schéma Zod partiel; les validations strictes de format sont moins encadrées qu’au `POST`.
+
+Exemple:
+```json
+{
+  "designation": "Bon de Laboratoire - Physique II",
+  "amount": 20,
+  "status": "active"
+}
+```
+
+Réponse:
+- `200`: `{ "success": true, "data": Resource | null }`
+
+##### `DELETE /api/resources/:id`
+
+- Aucun corps JSON.
+- `200`: `{ "success": true, "message": "Resource deleted" }`
+
+---
 
 ### 🛒 Commandes (Orders)
-- `POST /api/commandes` : Soumission d'une commande par un étudiant.
-- `GET /api/commandes/:id` : Détails d'une commande (avec population parcours/ressource).
-- `GET /api/commandes/:id/download` : Génération et téléchargement du PDF (si payé).
-- `GET /api/commandes/verify/:id` : Endpoint public de vérification (QR Code).
 
-### 🛠️ Administration des Commandes
-- `GET /api/commandes/admin/list` : Liste complète pour la section (Filtres : `type`, `payment`, `matricule`).
-- `PATCH /api/commandes/admin/:id` : **Validation manuelle**, ajout de notes, changement de statut de paiement.
-- `POST /api/commandes/test/email` : Test manuel d'envoi d'email groupé.
+Préfixe: **`/api/commandes`**
+
+| Méthode | Chemin | Description |
+|--------|--------|-------------|
+| `POST` | `/api/commandes` | Création d’une commande (union discriminée par `type`) |
+| `GET` | `/api/commandes` | Liste paginée **pour un parcours** (voir `parcoursId` obligatoire) |
+| `GET` | `/api/commandes/:id` | Détail d’une commande (avec `populate` parcours + ressource) |
+| `GET` | `/api/commandes/:id/download` | Téléchargement PDF si `payment=success` |
+| `GET` | `/api/commandes/verify/:id` | Vérification publique (QR code / partage) |
+| `GET` | `/api/commandes/admin/list` | Liste admin paginée + filtres |
+| `PATCH` | `/api/commandes/admin/:id` | Mise à jour admin (validation, paiement, livraison, notes...) |
+| `POST` | `/api/commandes/test/email` | Test d’envoi email groupé |
+
+#### Types communs (toutes les commandes)
+
+| Champ | Type | Requis | Valeur par défaut / Notes |
+|------|------|--------|---------------------------|
+| `parcoursId` | `string` | Oui | `_id` du parcours étudiant |
+| `ressourceId` | `string` | Oui | `_id` de la ressource demandée |
+| `telephone` | `string` | Oui | Téléphone de contact |
+| `type` | `labo \| stage \| sujet \| session \| resultat` | Oui | Discriminant |
+| `payment` | `success \| pending \| failed` | Non | `pending` |
+| `delivered` | `boolean` | Non | `false` |
+| `validationStatus` | `pending \| validated \| rejected` | Non | `pending` |
+| `validationDate` | `string` (ISO recommandé) | Non | Défini côté admin |
+| `validatedBy` | `string` | Non | Défini côté admin |
+
+Champs générés automatiquement à la création:
+- `orderNumber` (format `CMD-YYYY-XXXX`)
+- `reference` (format `REF-TYPE-YYYY-MATRICULE-XXXX`)
+
+#### Création `POST /api/commandes` (payload par `type`)
+
+| Type | Champs supplémentaires requis | Optionnels |
+|------|-------------------------------|------------|
+| `labo` | aucun | `cote` (`0..20`), `observation` |
+| `stage` | `stageTitle`, `recipientName`, `recipientQuality`, `recipientSex` (`M`/`F`), `companyName`, `companyLocation` | `documentReference` |
+| `sujet` | `titre`, `directeur`, `co_directeur`, `thematique`, `justification[]`, `problematique[]`, `objectif[]`, `methodologie[]`, `resultats_attendus[]`, `chronogrammes[]`, `references[]` | `note`, `validation`, `observations` |
+| `session` | aucun | `bulletin` (défaut `false`), `recoursIds[]` |
+| `resultat` | aucun | aucun |
+
+Structure de section utilisée dans `methodologie`, `resultats_attendus`, `chronogrammes`, `references`:
+```json
+{ "title": "string", "contenu": ["ligne 1", "ligne 2"] }
+```
+
+Réponses:
+- `201`: `{ "success": true, "data": Order }`
+- `400`: erreur de validation (Zod)
+- `500`: erreur métier possible (ex. parcours non trouvé, ressource non trouvée, parcours suspendu/abandon)
+
+#### Lecture des commandes
+
+##### `GET /api/commandes` — liste (non-admin)
+
+Retourne les commandes **uniquement** pour le parcours indiqué. Les filtres (pagination, désignation, critères dynamiques) sont les **mêmes** que pour `GET /api/commandes/admin/list`, sauf :
+
+- **`parcoursId`** (query, **obligatoire**) : `_id` MongoDB du parcours ; le résultat est toujours restreint à ce parcours (toute tentative de filtre `parcoursId` dans `criteria` ou en query dynamique est ignorée côté serveur).
+- **`matricule`** : ignoré sur cette route (utiliser le parcours ciblé).
+- **Sécurité** : ce microservice n’applique pas d’auth JWT ici ; en production, l’API doit être protégée (gateway) ou vous devez valider que l’appelant a le droit de consulter ce `parcoursId`.
+
+| Paramètre | Type | Description |
+|----------|------|-------------|
+| `parcoursId` | `string` | **Requis** — périmètre liste |
+| `type` | `string` | Filtre exact sur le type |
+| `payment` | `string` | Filtre exact sur le paiement |
+| `search` ou `designation` | `string` | Recherche par `ressource.designation` |
+| `page` | `number` | Page (défaut `1`) |
+| `limit` | `number` | Taille (défaut `10`, max `200`) |
+| `sortBy` | `string` | Tri (défaut `createdAt`) |
+| `sortOrder` | `asc \| desc` | Sens (défaut `desc`) |
+| `criteria` | `string` (JSON) | Critères dynamiques (voir admin) |
+
+Réponses :
+- `200` : `{ "success": true, "data": [ OrderPopulated ], "meta": { "total", "page", "limit" } }`
+- `400` : `parcoursId` manquant ou ObjectId invalide
+
+##### `GET /api/commandes/:id`
+- `200`: `{ "success": true, "data": OrderPopulated }`
+- `404`: `{ "success": false, "error": "Commande non trouvée" }`
+
+##### `GET /api/commandes/:id/download`
+- Condition: `payment` doit être `success`
+- `200`: PDF (`Content-Type: application/pdf`)
+- `403`: `{ "success": false, "error": "Paiement non confirmé" }`
+- `404`: commande introuvable
+
+##### `GET /api/commandes/verify/:id`
+- Endpoint public de vérification.
+- `200`: `{ "success": true, "verified": true, "data": { orderNumber, reference, type, student, status, delivered } }`
+- `404`: commande introuvable
+
+#### Admin: filtres, pagination, update
+
+##### `GET /api/commandes/admin/list`
+
+| Paramètre | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | Filtre exact sur le type de commande |
+| `payment` | `string` | Filtre exact sur le statut de paiement |
+| `matricule` | `string` | Recherche via `parcours.student.matricule` |
+| `search` ou `designation` | `string` | Recherche par `ressource.designation` (insensible à la casse) |
+| `page` | `number` | Page (défaut `1`) |
+| `limit` | `number` | Taille de page (défaut `10`, max `200`) |
+| `sortBy` | `string` | Champ de tri (défaut `createdAt`) |
+| `sortOrder` | `asc \| desc` | Sens du tri (défaut `desc`) |
+| `criteria` | `string` (JSON) | Critères dynamiques JSON (objet) |
+
+Critères dynamiques / multi-critères:
+- Même mécanisme que les ressources (`field=value`, `field__op=value`, JSON `criteria`).
+- Exemples:
+  - `validationStatus=validated&delivered=true`
+  - `createdAt__gte=2026-01-01&createdAt__lte=2026-12-31`
+  - `criteria={"type__in":"stage,sujet","delivered":false}`
+
+Réponse:
+- `200`: `{ "success": true, "data": [ OrderPopulated ], "meta": { "total": number, "page": number, "limit": number } }`
+
+##### `PATCH /api/commandes/admin/:id`
+
+Corps: objet partiel de mise à jour. Exemples de champs fréquemment patchés:
+- `payment`: `success`/`pending`/`failed`
+- `validationStatus`: `pending`/`validated`/`rejected`
+- `validationDate`: date ISO
+- `validatedBy`: string
+- `delivered`: boolean
+- champs métier de type (ex. `cote`, `observation`, etc.)
+
+Réponse:
+- `200`: `{ "success": true, "data": Order }`
+- `404`/`500`: si commande introuvable ou autre erreur serveur
 
 ## 📖 Exemples de requêtes (cURL)
 
@@ -318,6 +536,12 @@ curl -X POST http://localhost:3000/api/commandes \
   "cote": 0,
   "observation": "Nouvelle demande"
 }'
+```
+
+**Lister les commandes du parcours** (pagination, recherche par désignation de ressource, critères dynamiques — `parcoursId` obligatoire en query) :
+
+```bash
+curl -sS "http://localhost:3000/api/commandes?parcoursId=ID_DU_PARCOURS&page=1&limit=10&payment=pending&designation=laboratoire"
 ```
 
 ### 4. Validation Manuelle & Paiement (Admin)

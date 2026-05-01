@@ -4,6 +4,20 @@ import Resource from '../models/Resource';
 import { OrderCreate } from '../schemas/order.schema';
 import { EmailService } from './email.service';
 import mongoose from 'mongoose';
+import { buildMongoQueryFromDynamicCriteria } from '../util/query-filter.util';
+
+export type OrderListFilters = {
+  type?: string;
+  payment?: string;
+  matricule?: string;
+  designation?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  dynamicCriteria?: Record<string, unknown>;
+};
 
 export class OrderService {
   /**
@@ -47,39 +61,119 @@ export class OrderService {
   }
 
   /**
+   * Liste des commandes pour un parcours (non-admin) : même filtres que l’admin,
+   * mais limité au `parcoursId` fourni (impersonation côté client : prévoir auth en amont).
+   */
+  static async getOrdersForParcours(parcoursId: string, filters: OrderListFilters) {
+    return this.listOrders(filters, { parcoursScope: parcoursId });
+  }
+
+  /**
    * Liste administrative avec filtres
    */
-  static async getAdminOrders(filters: {
-    type?: string;
-    payment?: string;
-    matricule?: string;
-    page?: number;
-    limit?: number;
-  }) {
-    const { type, payment, matricule, page = 1, limit = 10 } = filters;
-    const query: any = {};
+  static async getAdminOrders(filters: OrderListFilters) {
+    return this.listOrders(filters, {});
+  }
 
-    if (type) query.type = type;
-    if (payment) query.payment = payment;
-    if (matricule) {
-      // On doit d'abord trouver le parcours lié au matricule
-      const parcours = await Parcours.findOne({ 'student.matricule': matricule });
-      if (parcours) query.parcoursId = parcours._id;
-      else return { data: [], total: 0, page, limit };
+  private static async listOrders(
+    filters: OrderListFilters,
+    options: { parcoursScope?: string } = {},
+  ) {
+    const {
+      type,
+      payment,
+      matricule,
+      designation,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      dynamicCriteria: rawDynamic = {},
+    } = filters;
+
+    const dynamicCriteria = { ...rawDynamic };
+    if (options.parcoursScope) {
+      delete dynamicCriteria.parcoursId;
     }
 
-    const skip = (page - 1) * limit;
+    const query: Record<string, unknown> = {
+      ...buildMongoQueryFromDynamicCriteria(dynamicCriteria),
+    };
+
+    if (options.parcoursScope) {
+      const scopeId = options.parcoursScope.trim();
+      if (!mongoose.Types.ObjectId.isValid(scopeId)) {
+        const error = new Error('Le paramètre parcoursId doit être un ObjectId valide.');
+        (error as Error & { status?: number }).status = 400;
+        throw error;
+      }
+      const parcoursDoc = await Parcours.findById(scopeId);
+      if (!parcoursDoc) {
+        const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+        const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 200) : 10;
+        return { data: [], total: 0, page: safePage, limit: safeLimit };
+      }
+      query.parcoursId = new mongoose.Types.ObjectId(scopeId);
+      if (type) query.type = type;
+      if (payment) query.payment = payment;
+      // `matricule` est ignoré quand le périmètre parcours est imposé
+    } else {
+      if (type) query.type = type;
+      if (payment) query.payment = payment;
+      if (matricule) {
+        const parcours = await Parcours.findOne({ 'student.matricule': matricule });
+        if (parcours) query.parcoursId = parcours._id;
+        else {
+          const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+          const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 200) : 10;
+          return { data: [], total: 0, page: safePage, limit: safeLimit };
+        }
+      }
+    }
+
+    const designationSearch = designation?.trim() || search?.trim();
+    if (designationSearch) {
+      const matchingResources = await Resource.find({
+        designation: { $regex: designationSearch, $options: 'i' },
+      }).select('_id');
+      const resourceIds = matchingResources.map((resource) => resource._id);
+
+      if (!resourceIds.length) {
+        const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+        const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 200) : 10;
+        return { data: [], total: 0, page: safePage, limit: safeLimit };
+      }
+
+      const existingRessourceFilter = query.ressourceId;
+      if (existingRessourceFilter) {
+        query.$and = [
+          { ressourceId: existingRessourceFilter },
+          { ressourceId: { $in: resourceIds } },
+        ];
+        delete query.ressourceId;
+      } else {
+        query.ressourceId = { $in: resourceIds };
+      }
+    }
+
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 200) : 10;
+    const skip = (safePage - 1) * safeLimit;
+    const sortDirection: 1 | -1 = sortOrder === 'asc' ? 1 : -1;
+    const sort: [string, 1 | -1][] = [[sortBy, sortDirection]];
+
     const [data, total] = await Promise.all([
       OrderModel.find(query)
         .populate('parcoursId')
         .populate('ressourceId')
         .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }),
+        .limit(safeLimit)
+        .sort(sort),
       OrderModel.countDocuments(query),
     ]);
 
-    return { data, total, page, limit };
+    return { data, total, page: safePage, limit: safeLimit };
   }
 
   /**

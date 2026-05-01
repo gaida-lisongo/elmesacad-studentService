@@ -1,11 +1,53 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { OrderService } from '../../../services/order.service';
+import { OrderService, type OrderListFilters } from '../../../services/order.service';
 import { EmailService } from '../../../services/email.service';
 import { orderUnionSchema } from '../../../schemas/order.schema';
 
 import { DocumentMappingService } from '../../../services/document-mapping.service';
+import { parseJsonCriteria } from '../../../util/query-filter.util';
 
 const router = Router();
+
+const ORDER_LIST_QUERY_RESERVED = new Set([
+  'type',
+  'payment',
+  'matricule',
+  'search',
+  'designation',
+  'page',
+  'limit',
+  'sortBy',
+  'sortOrder',
+  'criteria',
+]);
+
+function buildOrderListFilters(
+  query: Record<string, unknown>,
+  reservedKeys: Set<string>,
+): OrderListFilters {
+  const rawCriteria = parseJsonCriteria(query.criteria);
+  const dynamicCriteria = Object.fromEntries(
+    Object.entries(query).filter(([key, value]) => {
+      return !reservedKeys.has(key) && value !== undefined;
+    }),
+  );
+
+  return {
+    type: query.type as string,
+    payment: query.payment as string,
+    matricule: query.matricule as string,
+    search: query.search as string,
+    designation: query.designation as string,
+    page: query.page ? Number(query.page) : 1,
+    limit: query.limit ? Number(query.limit) : 10,
+    sortBy: (query.sortBy as string) || 'createdAt',
+    sortOrder: ((query.sortOrder as string) === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
+    dynamicCriteria: {
+      ...rawCriteria,
+      ...dynamicCriteria,
+    },
+  };
+}
 
 // --- Routes Étudiants ---
 
@@ -84,6 +126,34 @@ router.post('/test/email', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
+// GET /api/commandes - Liste paginée (non-admin) : filtrée par parcours
+// Déclarée AVANT /:id pour ne pas confondre avec un identifiant.
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const query = req.query as Record<string, unknown>;
+    const parcoursId = (query.parcoursId as string)?.trim();
+    if (!parcoursId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Le paramètre query parcoursId est obligatoire pour lister les commandes.',
+      });
+    }
+
+    const reserved = new Set(ORDER_LIST_QUERY_RESERVED);
+    reserved.add('parcoursId');
+
+    const filters = buildOrderListFilters(query, reserved);
+    const result = await OrderService.getOrdersForParcours(parcoursId, filters);
+    res.json({
+      success: true,
+      data: result.data,
+      meta: { total: result.total, page: result.page, limit: result.limit },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/commandes/:id - Détails d'une commande
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -100,13 +170,8 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 // GET /api/commandes/admin/list - Liste administrative
 router.get('/admin/list', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const filters = {
-      type: req.query.type as string,
-      payment: req.query.payment as string,
-      matricule: req.query.matricule as string,
-      page: req.query.page ? parseInt(req.query.page as string) : 1,
-      limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
-    };
+    const query = req.query as Record<string, unknown>;
+    const filters = buildOrderListFilters(query, ORDER_LIST_QUERY_RESERVED);
     const result = await OrderService.getAdminOrders(filters);
     res.json({
       success: true,
