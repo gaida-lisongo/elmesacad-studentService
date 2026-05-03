@@ -28,7 +28,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
   const body = parsed.data;
   const docMeta = body.document;
-  const verificationBase = process.env.APP_URL || 'http://localhost:3000';
+  const verificationBase = 'https://services.inbtp.ac.cd/student';
   const verifyRef = docMeta?.reference ?? 'bulletin';
   const verificationUrl = `${verificationBase}/api/commandes/verify/${verifyRef}`;
 
