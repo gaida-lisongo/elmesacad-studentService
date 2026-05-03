@@ -459,7 +459,7 @@ class Document {
                                     fontSize: this.chart.sm,
                                 },
                             ], 
-                            width: "30%" 
+                            width: "35%" 
                         },
                         {
                             stack: [
@@ -497,7 +497,7 @@ class Document {
                                 },
                                 ...content,
                             ],
-                            width: "70%"
+                            width: "65%"
                         },
                     ],
                 },
