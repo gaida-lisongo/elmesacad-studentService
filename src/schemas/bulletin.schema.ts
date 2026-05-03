@@ -52,13 +52,22 @@ export const bulletinClientPayloadSchema = z.object({
       other: z.string().optional(),
     })
     .optional(),
-  /** Métadonnées produit / branding côté client (ignorées par le PDF actuel, réservées à l’évolution). */
   ressource: z
     .object({
       produit: z.string().optional(),
       categorie: z.string().optional(),
       reference: z.string().optional(),
-      branding: z.record(z.string(), z.unknown()).optional(),
+      branding: z
+        .object({
+          institut: z.string().optional(),
+          section: z.string().optional(),
+          sectionRef: z.string().optional(),
+          chef: z.string().optional(),
+          contact: z.string().optional(),
+          email: z.string().optional(),
+          adresse: z.string().optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

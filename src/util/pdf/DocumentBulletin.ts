@@ -1,4 +1,4 @@
-import Document, { type Note } from "./Document";
+import Document, { type Note, type StudentDocumentApproval } from "./Document";
 
 type PdfCell = string | number | Record<string, unknown>;
 type PdfRow = PdfCell[];
@@ -30,6 +30,14 @@ export type DocumentBulletinPayload = {
     dateCreate: string;
     other?: string;
   };
+  ressource?: {
+    branding?: {
+      chef?: string;
+      email?: string;
+      contact?: string;
+      adresse?: string;
+    };
+  };
 };
 
 class DocumentBulletin extends Document {
@@ -58,6 +66,7 @@ class DocumentBulletin extends Document {
     reference: "RN-2024-001",
     dateCreate: "15/04/2026",
   };
+  private documentApproval: StudentDocumentApproval = {};
 
   constructor(payload: DocumentBulletinPayload | null = null) {
     super();
@@ -106,6 +115,11 @@ class DocumentBulletin extends Document {
       ...(document ?? {}),
     };
 
+    const b = data.ressource?.branding;
+    this.documentApproval = b
+      ? { chef: b.chef, email: b.email, telephone: b.contact }
+      : {};
+
     const parsedRows: PdfRow[] = this.notes.flatMap((u) => {
       const moyenneRow: PdfRow = [
         {
@@ -129,7 +143,7 @@ class DocumentBulletin extends Document {
           color: u.moyenne < 10 ? this.chart.secondary : this.chart.black,
         },
         {
-          text: `${u.moyenne}`,
+          text: u.moyenne.toFixed(2),
           style: "tabUnite",
           color: u.moyenne < 10 ? this.chart.secondary : this.chart.black,
         },
@@ -213,6 +227,7 @@ class DocumentBulletin extends Document {
       this.parcour,
       this.contact,
       this.document,
+      this.documentApproval,
     );
   }
 }

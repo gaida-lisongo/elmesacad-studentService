@@ -43,6 +43,7 @@ router.post('/generate', async (req: Request, res: Response) => {
           dateCreate: formatDateCreateFr(docMeta.dateCreate) ?? docMeta.dateCreate,
         }
       : undefined,
+    ressource: body.ressource,
   };
 
   try {

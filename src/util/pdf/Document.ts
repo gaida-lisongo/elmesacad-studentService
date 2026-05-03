@@ -1,5 +1,5 @@
 import { PdfDocumentDefinition } from "../../types/documents";
-import { getSchoolPdfBrandingAssets, imageUrlToBase64 } from "../assets/asset-images.server";
+import { getAssetImageDataUrl, getSchoolPdfBrandingAssets, imageUrlToBase64 } from "../assets/asset-images.server";
 import { createCanvas, loadImage } from 'canvas';
 import { getChef, getContact, getEmail, getInstitutSigle, getSchoolName, getAddress } from "../branding";
 
@@ -17,6 +17,22 @@ export interface Note {
     credit: number
   }[]
 }
+
+/** Ex. `annee-2023-2024-53` → `2023-2024` (première et deuxième année à 4 chiffres du slug). */
+export function formatAnneeAcademiqueFromSlug(annee: string): string {
+  const yearTokens = annee.split('-').filter((p) => /^\d{4}$/.test(p));
+  if (yearTokens.length >= 2) {
+    return `${yearTokens[0]}-${yearTokens[1]}`;
+  }
+  return annee;
+}
+
+export type StudentDocumentApproval = {
+  chef?: string;
+  email?: string;
+  /** Téléphone (côté client branding souvent dans `contact`) */
+  telephone?: string;
+};
 
 class Document {
     docDefinition: PdfDocumentDefinition;
@@ -322,13 +338,20 @@ class Document {
             detail: "Relevé de notes du semestre 1",
             reference: "RN-2024-001",
             dateCreate: "15/04/2026",
-        }
+        },
+        documentApproval?: StudentDocumentApproval,
     ){
         try {
             const { schoolLogo } = await getSchoolPdfBrandingAssets();
-            //converti la photo de profile en dataImage si sa existe
-            const photo = student?.profile ? await imageUrlToBase64(student.profile) : null;
+            let photo = student?.profile ? await imageUrlToBase64(student.profile) : null;
+            if (!photo) {
+                photo = await getAssetImageDataUrl('inbtpLogo');
+            }
             const roundedPhoto = photo ? await this.getRoundedImage(photo, 80) : null;
+            const anneeLabel = formatAnneeAcademiqueFromSlug(parcour.annee);
+            const chefAppui = (documentApproval?.chef?.trim() || getChef().trim() || 'Non renseigne');
+            const emailAppui = (documentApproval?.email?.trim() || getEmail().trim() || 'Non renseigne');
+            const telAppui = (documentApproval?.telephone?.trim() || getContact().trim() || 'Non renseigne');
             const service = this.getService();
 
             const mainPage: any[] = [
@@ -401,7 +424,7 @@ class Document {
                                     margin: [0, 0, 0, 5]
                                 },                 
                                 {
-                                    text: `${parcour.promotion}\n${parcour.annee}\n${parcour.systeme}`,
+                                    text: `${parcour.promotion}\n${anneeLabel}\n${parcour.systeme}`,
                                     fontSize: this.chart.sm,
                                     bold: true,
                                     margin: [0, 0, 0, this.chart.lg]
@@ -427,12 +450,12 @@ class Document {
                                     margin: [0, 0, 0, 5]
                                 },  
                                 {
-                                    text: `${getChef()}`,
+                                    text: chefAppui,
                                     bold: true,
                                     fontSize: this.chart.sm
                                 },
                                 {
-                                    text: `${getEmail()}\n${getContact()}`,
+                                    text: `${emailAppui}\n${telAppui}`,
                                     fontSize: this.chart.sm,
                                 },
                             ], 
