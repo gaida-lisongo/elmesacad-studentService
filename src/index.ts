@@ -10,6 +10,7 @@ import parcoursRouter from './routes/api/parcours';
 import resourceRouter from './routes/api/resources';
 import orderRouter from './routes/api/orders';
 import testPrintRouter from './routes/api/test-print';
+import bulletinRouter from './routes/api/bulletin';
 import { DeploymentService } from './services/deployment.service';
 import { errorHandler } from './util/error-handler';
 
@@ -37,6 +38,7 @@ app.use('/api/parcours', parcoursRouter);
 app.use('/api/resources', resourceRouter);
 app.use('/api/commandes', orderRouter);
 app.use('/api/test-print', testPrintRouter);
+app.use('/api/bulletin', bulletinRouter);
 
 // Route de déploiement (Server Action)
 app.post('/api/admin/deploy', async (req: Request, res: Response) => {
