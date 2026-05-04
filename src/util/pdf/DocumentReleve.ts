@@ -45,7 +45,8 @@ export type DocumentRelevePayload = {
     serialNumber: string;
     units: ReleveUnitItem[];
     summary: ReleveSummary;
-    verificationUrl: string;
+    /** Conservé pour compatibilité ; l’URL effective est passée à `generate()`. */
+    verificationUrl?: string;
 };
 
 class DocumentReleve extends Document {
