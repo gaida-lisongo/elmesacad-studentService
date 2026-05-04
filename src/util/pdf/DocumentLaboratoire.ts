@@ -1,10 +1,5 @@
 import Document from "./Document";
 
-export type DocumentLaboratoireDescriptionSection = {
-  title: string;
-  contenu: string[];
-};
-
 export type DocumentLaboratoirePayload = {
   student?: {
     nom: string;
@@ -41,8 +36,6 @@ export type DocumentLaboratoirePayload = {
   laboratoire: {
     designation: string;
     montant: number | null;
-    description?: string;
-    descriptionSections?: DocumentLaboratoireDescriptionSection[];
   };
   verificationUrl: string;
 };
@@ -94,7 +87,6 @@ class DocumentLaboratoire extends Document {
   private laboratoire: DocumentLaboratoirePayload["laboratoire"] = {
     designation: "Laboratoire",
     montant: null,
-    descriptionSections: undefined,
   };
 
   private verificationUrl = "";
@@ -131,13 +123,13 @@ class DocumentLaboratoire extends Document {
     this.verificationUrl = data.verificationUrl;
   }
 
-  private infoTable(rows: Array<[string, string]>) {
+  private infoTable(rows: Array<[string, string]>, labelWidth = 100) {
     return {
       table: {
-        widths: [110, "*"],
+        widths: [labelWidth, "*"],
         body: rows.map(([label, value]) => [
-          { text: label, color: "#6B7280", margin: [0, 3, 0, 3] },
-          { text: value, bold: true, margin: [0, 3, 0, 3] },
+          { text: label, color: "#6B7280", fontSize: this.chart.xs, margin: [0, 1, 0, 1] },
+          { text: value, bold: true, fontSize: this.chart.sm, margin: [0, 1, 0, 1] },
         ]),
       },
       layout: "lightHorizontalLines",
@@ -148,8 +140,8 @@ class DocumentLaboratoire extends Document {
   private identityField(label: string, value: string) {
     return {
       stack: [
-        { text: label, color: "#6B7280", fontSize: this.chart.xs, margin: [0, 0, 0, 2] },
-        { text: value, bold: true, fontSize: this.chart.sm, margin: [0, 0, 0, 10] },
+        { text: label, color: "#6B7280", fontSize: this.chart.xs, margin: [0, 0, 0, 1] },
+        { text: value, bold: true, fontSize: this.chart.sm, margin: [0, 0, 0, 4] },
       ],
     };
   }
@@ -174,7 +166,7 @@ class DocumentLaboratoire extends Document {
         { width: '50%', stack: left },
         { width: '50%', stack: right.length ? right : [{ text: ' ', fontSize: this.chart.xs }] },
       ],
-      columnGap: 16,
+      columnGap: 10,
     };
   }
 
@@ -182,17 +174,16 @@ class DocumentLaboratoire extends Document {
     await this.background();
     await this.buildFooter(this.verificationUrl);
 
-    const descriptifStack: Record<string, unknown>[] = [];
-    const sections = this.laboratoire.descriptionSections;
-    if (sections?.length) {
-      descriptifStack.push({ text: "Descriptif du produit", style: "subtitle", margin: [0, 0, 0, 6] });
-      for (const sec of sections) {
-        descriptifStack.push({ text: sec.title, bold: true, margin: [0, 8, 0, 4] });
-        for (const line of sec.contenu ?? []) {
-          descriptifStack.push({ text: line, fontSize: this.chart.sm, margin: [0, 1, 0, 3] });
-        }
-      }
-    }
+    const parcoursRows: Array<[string, string]> = [
+      ['Classe / promotion', this.parcour.promotion],
+      ...(this.parcour.filiere ? [['Filière', this.parcour.filiere] as [string, string]] : []),
+      ['Système', this.parcour.systeme],
+      ['Année académique', this.parcour.annee],
+      ['Matricule institutionnel', this.parcour.matricule],
+      ...(this.parcour.referenceParcours
+        ? [['Réf. parcours', this.parcour.referenceParcours] as [string, string]]
+        : []),
+    ];
 
     await this.adminLayout([
       [
@@ -201,7 +192,7 @@ class DocumentLaboratoire extends Document {
           style: "title",
           alignment: "center",
           colSpan: 3,
-          margin: [0, 0, 0, 8],
+          margin: [0, 0, 0, 4],
         },
         "",
         "",
@@ -211,7 +202,7 @@ class DocumentLaboratoire extends Document {
           text: `Document émis le ${this.document.dateCreate}`,
           alignment: "center",
           colSpan: 3,
-          margin: [0, 0, 0, 16],
+          margin: [0, 0, 0, 6],
           border: [false, false, false, false],
         },
         "",
@@ -226,8 +217,9 @@ class DocumentLaboratoire extends Document {
             { text: this.laboratoire.designation, bold: true },
             ".",
           ],
+          fontSize: this.chart.sm,
           colSpan: 3,
-          margin: [0, 0, 0, 14],
+          margin: [0, 0, 0, 6],
           border: [false, false, false, false],
         },
         "",
@@ -236,67 +228,47 @@ class DocumentLaboratoire extends Document {
       [
         {
           stack: [
-            { text: "Identité de l'étudiant", style: "subtitle", margin: [0, 0, 0, 6] },
+            { text: "Identité de l'étudiant", style: "subtitle", margin: [0, 0, 0, 4] },
             this.identityTwoColumns(),
           ],
           colSpan: 3,
           border: [false, false, false, false],
-          margin: [0, 0, 0, 14],
-        },
-        "",
-        "",
-      ],
-      ...(descriptifStack.length > 1
-        ? [
-            [
-              {
-                stack: descriptifStack,
-                colSpan: 3,
-                border: [false, false, false, false],
-                margin: [0, 0, 0, 14],
-              },
-              "",
-              "",
-            ],
-          ]
-        : []),
-      [
-        {
-          stack: [
-            { text: "Laboratoire", style: "subtitle", margin: [0, 0, 0, 6] },
-            this.infoTable([
-              ["Designation", this.laboratoire.designation],
-              ["Montant", typeof this.laboratoire.montant === "number" ? `${this.laboratoire.montant} USD` : "Non renseigne"],
-              ["Detail", this.document.detail],
-            ]),
-          ],
-          colSpan: 3,
-          border: [false, false, false, false],
-          margin: [0, 0, 0, 14],
+          margin: [0, 0, 0, 6],
         },
         "",
         "",
       ],
       [
         {
-          stack: [
-            { text: 'Parcours académique (registre INBTP)', style: 'subtitle', margin: [0, 0, 0, 6] },
-            this.infoTable([
-              ['Classe / promotion', this.parcour.promotion],
-              ...(this.parcour.filiere ? [['Filière', this.parcour.filiere] as [string, string]] : []),
-              ['Système', this.parcour.systeme],
-              ['Année académique', this.parcour.annee],
-              ['Matricule institutionnel', this.parcour.matricule],
-              ...(this.parcour.referenceParcours
-                ? [['Référence parcours', this.parcour.referenceParcours] as [string, string]]
-                : []),
-            ]),
+          columns: [
+            {
+              width: "50%",
+              stack: [
+                { text: "Laboratoire", style: "subtitle", margin: [0, 0, 0, 4] },
+                this.infoTable(
+                  [
+                    ["Désignation", this.laboratoire.designation],
+                    ["Montant", typeof this.laboratoire.montant === "number" ? `${this.laboratoire.montant} USD` : "Non renseigné"],
+                  ],
+                  88,
+                ),
+              ],
+            },
+            {
+              width: "50%",
+              stack: [
+                { text: "Parcours (INBTP)", style: "subtitle", margin: [0, 0, 0, 4] },
+                this.infoTable(parcoursRows, 88),
+              ],
+            },
           ],
+          columnGap: 10,
           colSpan: 3,
           border: [false, false, false, false],
+          margin: [0, 0, 0, 4],
         },
-        '',
-        '',
+        "",
+        "",
       ],
     ]);
   }

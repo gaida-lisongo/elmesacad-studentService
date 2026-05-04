@@ -101,8 +101,6 @@ router.post('/generate', async (req: Request, res: Response) => {
 
   const dateCreate = new Date().toLocaleDateString('fr-FR');
 
-  const descriptionSections = body.produit.description?.filter((s) => s.title || s.contenu?.length);
-
   const labPayload: DocumentLaboratoirePayload = {
     student: {
       nom: body.etudiant.name,
@@ -137,7 +135,6 @@ router.post('/generate', async (req: Request, res: Response) => {
     laboratoire: {
       designation: body.produit.designation,
       montant: body.produit.amount,
-      descriptionSections: descriptionSections?.length ? descriptionSections : undefined,
     },
     verificationUrl: buildVerificationUrl(body.commande.id),
   };
