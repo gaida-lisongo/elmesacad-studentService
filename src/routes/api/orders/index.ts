@@ -5,6 +5,11 @@ import { orderUnionSchema } from '../../../schemas/order.schema';
 
 import { DocumentMappingService } from '../../../services/document-mapping.service';
 import { parseJsonCriteria } from '../../../util/query-filter.util';
+import {
+  buildVerificationOrderView,
+  renderVerificationNotFoundPage,
+  renderVerificationOrderPage,
+} from '../../../util/verification-order-page';
 
 const router = Router();
 
@@ -51,14 +56,20 @@ function buildOrderListFilters(
 
 // --- Routes Étudiants ---
 
-// GET /api/commandes/verify/:id - Vérification publique
+// GET /api/commandes/verify/:id - Vérification publique (JSON pour intégrations, HTML pour navigateur)
 router.get('/verify/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const order = await OrderService.getById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, error: 'Commande non trouvée' });
-    
-    // On renvoie les infos essentielles pour la vérification
-    res.json({
+    if (!order) {
+      return res.status(404).format({
+        'application/json': () =>
+          res.json({ success: false, error: 'Commande non trouvée' }),
+        'text/html': () => res.type('html').send(renderVerificationNotFoundPage()),
+        default: () => res.json({ success: false, error: 'Commande non trouvée' }),
+      });
+    }
+
+    const verificationJson = {
       success: true,
       verified: true,
       data: {
@@ -67,8 +78,17 @@ router.get('/verify/:id', async (req: Request, res: Response, next: NextFunction
         type: order.type,
         student: order.parcoursId.student.nomComplet,
         status: order.payment,
-        delivered: order.delivered
-      }
+        delivered: order.delivered,
+      },
+    };
+
+    res.format({
+      'application/json': () => res.json(verificationJson),
+      'text/html': () => {
+        const view = buildVerificationOrderView(order);
+        res.type('html').send(renderVerificationOrderPage(view));
+      },
+      default: () => res.json(verificationJson),
     });
   } catch (error) {
     next(error);
