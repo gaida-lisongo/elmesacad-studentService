@@ -12,6 +12,7 @@ import orderRouter from './routes/api/orders';
 import testPrintRouter from './routes/api/test-print';
 import bulletinRouter from './routes/api/bulletin';
 import releveRouter from './routes/api/releve';
+import macaronRouter from './routes/api/macaron';
 import { DeploymentService } from './services/deployment.service';
 import { errorHandler } from './util/error-handler';
 
@@ -41,6 +42,7 @@ app.use('/api/commandes', orderRouter);
 app.use('/api/test-print', testPrintRouter);
 app.use('/api/bulletin', bulletinRouter);
 app.use('/api/releve', releveRouter);
+app.use('/api/macaron', macaronRouter);
 
 // Route de déploiement (Server Action)
 app.post('/api/admin/deploy', async (req: Request, res: Response) => {
