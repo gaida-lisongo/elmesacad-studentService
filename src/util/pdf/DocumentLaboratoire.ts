@@ -1,10 +1,20 @@
 import Document from "./Document";
 
+export type DocumentLaboratoireDescriptionSection = {
+  title: string;
+  contenu: string[];
+};
+
 export type DocumentLaboratoirePayload = {
   student?: {
     nom: string;
     sexe: string;
     ville: string;
+    email?: string;
+    telephone?: string;
+    adresse?: string;
+    nationalite?: string;
+    dateNaissance?: string;
   };
   parcour?: {
     promotion: string;
@@ -29,12 +39,22 @@ export type DocumentLaboratoirePayload = {
     designation: string;
     montant: number | null;
     description?: string;
+    descriptionSections?: DocumentLaboratoireDescriptionSection[];
   };
   verificationUrl: string;
 };
 
 class DocumentLaboratoire extends Document {
-  private student: { nom: string; sexe: string; ville: string } = {
+  private student: {
+    nom: string;
+    sexe: string;
+    ville: string;
+    email?: string;
+    telephone?: string;
+    adresse?: string;
+    nationalite?: string;
+    dateNaissance?: string;
+  } = {
     nom: "Etudiant",
     sexe: "M",
     ville: "Kinshasa",
@@ -64,6 +84,7 @@ class DocumentLaboratoire extends Document {
   private laboratoire: DocumentLaboratoirePayload["laboratoire"] = {
     designation: "Laboratoire",
     montant: null,
+    descriptionSections: undefined,
   };
 
   private verificationUrl = "";
@@ -117,6 +138,30 @@ class DocumentLaboratoire extends Document {
     await this.background();
     await this.buildFooter(this.verificationUrl);
 
+    const identityRows: Array<[string, string]> = [
+      ["Nom complet", this.student.nom],
+      ["Sexe", this.student.sexe === "F" ? "Féminin" : "Masculin"],
+      ["Ville / lieu de naissance", this.student.ville],
+      ["Matricule", this.parcour.matricule],
+    ];
+    if (this.student.email) identityRows.push(["E-mail", this.student.email]);
+    if (this.student.telephone) identityRows.push(["Téléphone", this.student.telephone]);
+    if (this.student.adresse) identityRows.push(["Adresse", this.student.adresse]);
+    if (this.student.nationalite) identityRows.push(["Nationalité", this.student.nationalite]);
+    if (this.student.dateNaissance) identityRows.push(["Date de naissance", this.student.dateNaissance]);
+
+    const descriptifStack: Record<string, unknown>[] = [];
+    const sections = this.laboratoire.descriptionSections;
+    if (sections?.length) {
+      descriptifStack.push({ text: "Descriptif du produit", style: "subtitle", margin: [0, 0, 0, 6] });
+      for (const sec of sections) {
+        descriptifStack.push({ text: sec.title, bold: true, margin: [0, 8, 0, 4] });
+        for (const line of sec.contenu ?? []) {
+          descriptifStack.push({ text: line, fontSize: this.chart.sm, margin: [0, 1, 0, 3] });
+        }
+      }
+    }
+
     await this.adminLayout([
       [
         {
@@ -156,6 +201,33 @@ class DocumentLaboratoire extends Document {
         "",
         "",
       ],
+      [
+        {
+          stack: [
+            { text: "Identité de l'étudiant", style: "subtitle", margin: [0, 0, 0, 6] },
+            this.infoTable(identityRows),
+          ],
+          colSpan: 3,
+          border: [false, false, false, false],
+          margin: [0, 0, 0, 14],
+        },
+        "",
+        "",
+      ],
+      ...(descriptifStack.length > 1
+        ? [
+            [
+              {
+                stack: descriptifStack,
+                colSpan: 3,
+                border: [false, false, false, false],
+                margin: [0, 0, 0, 14],
+              },
+              "",
+              "",
+            ],
+          ]
+        : []),
       [
         {
           stack: [

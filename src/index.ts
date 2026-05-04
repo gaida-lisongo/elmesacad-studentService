@@ -13,6 +13,7 @@ import testPrintRouter from './routes/api/test-print';
 import bulletinRouter from './routes/api/bulletin';
 import releveRouter from './routes/api/releve';
 import macaronRouter from './routes/api/macaron';
+import laboratoireRouter from './routes/api/laboratoire';
 import { DeploymentService } from './services/deployment.service';
 import { errorHandler } from './util/error-handler';
 
@@ -43,6 +44,7 @@ app.use('/api/test-print', testPrintRouter);
 app.use('/api/bulletin', bulletinRouter);
 app.use('/api/releve', releveRouter);
 app.use('/api/macaron', macaronRouter);
+app.use('/api/laboratoire', laboratoireRouter);
 
 // Route de déploiement (Server Action)
 app.post('/api/admin/deploy', async (req: Request, res: Response) => {
