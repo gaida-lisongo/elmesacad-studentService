@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import DocumentMacaron, { type DocumentMacaronPayload } from '../../../util/pdf/DocumentMacaron';
+import type { StudentDocumentApproval } from '../../../util/pdf/Document';
 import { macaronClientPayloadSchema } from '../../../schemas/macaron.schema';
 import { ParcoursService } from '../../../services/parcours.service';
 import ResourceModel from '../../../models/Resource';
@@ -14,6 +15,25 @@ function buildVerificationUrl(commandeId: string): string {
 function metadataSectionRef(metadata: Record<string, unknown> | undefined): string | undefined {
   const raw = metadata?.sectionRef;
   return typeof raw === 'string' ? raw : undefined;
+}
+
+type ResourceBrandingLean = {
+  chef?: string;
+  contact?: string;
+  email?: string;
+  adresse?: string;
+  institut?: string;
+  section?: string;
+  sectionRef?: string;
+};
+
+function approvalFromBranding(b: ResourceBrandingLean | undefined): StudentDocumentApproval {
+  if (!b) return {};
+  return {
+    chef: b.chef?.trim() || undefined,
+    email: b.email?.trim() || undefined,
+    telephone: b.contact?.trim() || undefined,
+  };
 }
 
 /**
@@ -130,6 +150,15 @@ router.post('/generate', async (req: Request, res: Response) => {
     body.commande.transaction?.phoneNumber?.trim() ||
     '—';
 
+  const rb = (resource as { branding?: ResourceBrandingLean }).branding;
+  const fromResource = approvalFromBranding(rb);
+  const fromClient = approvalFromBranding(body.branding);
+  const documentApproval: StudentDocumentApproval = {
+    chef: fromClient.chef ?? fromResource.chef,
+    email: fromClient.email ?? fromResource.email,
+    telephone: fromClient.telephone ?? fromResource.telephone,
+  };
+
   const macaronPayload: DocumentMacaronPayload = {
     student: {
       nom: pStudent.nomComplet || body.etudiant.name,
@@ -168,6 +197,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       dateEpreuve: (c.dateEpreuve && c.dateEpreuve.trim()) || 'À définir',
     })),
     verificationUrl,
+    documentApproval,
   };
 
   try {

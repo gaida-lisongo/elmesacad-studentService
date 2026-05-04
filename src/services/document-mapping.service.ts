@@ -41,7 +41,12 @@ export class DocumentMappingService {
           document: { type: 'Macaron de Session', ressource: 'Session Académique', detail: ressource.designation, reference: order.reference, dateCreate: new Date().toLocaleDateString('fr-FR') },
           session: { title: ressource.designation, amount: ressource.amount, period: { start: null, end: null } },
           matieres: order.matieres || [],
-          verificationUrl
+          verificationUrl,
+          documentApproval: {
+            chef: ressource.branding?.chef,
+            email: ressource.branding?.email,
+            telephone: ressource.branding?.contact,
+          },
         });
         await docInstance.generate();
         break;

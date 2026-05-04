@@ -52,7 +52,12 @@ router.get('/:document', async (req: Request, res: Response) => {
           document: { type: 'Macaron de Session', ressource: 'Session Académique', detail: 'Session 2025-2026', reference: 'REF-MACARON-TEST', dateCreate: new Date().toLocaleDateString('fr-FR') },
           session: { title: 'Session Ordinaire', amount: 50, period: { start: null, end: null } },
           matieres: [{ matiere: 'Mathématiques', dateEpreuve: '12/05/2026' }],
-          verificationUrl
+          verificationUrl,
+          documentApproval: {
+            chef: 'Dr. Ir. KATEMBO',
+            email: 'chef.section@inbtp.ac.cd',
+            telephone: '+243 850 000 000',
+          },
         });
         await docInstance.generate();
         break;

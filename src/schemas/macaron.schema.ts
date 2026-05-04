@@ -63,6 +63,16 @@ const coursItemSchema = z.object({
   dateEpreuve: z.string().optional(),
 });
 
+const macaronBrandingSchema = z.object({
+  institut: z.string().optional(),
+  section: z.string().optional(),
+  sectionRef: z.string().optional(),
+  chef: z.string().optional(),
+  contact: z.string().optional(),
+  email: z.string().optional(),
+  adresse: z.string().optional(),
+});
+
 /** Payload client pour génération du macaron de session (après paiement). */
 export const macaronClientPayloadSchema = z.object({
   produit: produitSchema,
@@ -71,6 +81,8 @@ export const macaronClientPayloadSchema = z.object({
   promotion: promotionSchema.optional(),
   etudiant: etudiantSchema,
   cours: z.array(coursItemSchema).min(1, 'Au moins une matière (cours) est requise'),
+  /** Prioritaire sur le branding stocké sur la ressource Mongo. */
+  branding: macaronBrandingSchema.optional(),
 });
 
 export type MacaronClientPayload = z.infer<typeof macaronClientPayloadSchema>;

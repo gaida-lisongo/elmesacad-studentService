@@ -1,4 +1,4 @@
-import Document from "./Document";
+import Document, { type StudentDocumentApproval } from "./Document";
 
 type PdfCell = string | number | Record<string, unknown>;
 type PdfRow = PdfCell[];
@@ -44,6 +44,8 @@ export type DocumentMacaronPayload = {
   };
   matieres: DocumentMacaronMatiereItem[];
   verificationUrl: string;
+  /** Branding section (chef, email, téléphone) pour « Document Approuvé par ». */
+  documentApproval?: StudentDocumentApproval;
 };
 
 const formatAmount = (value: number | null) => {
@@ -104,6 +106,7 @@ class DocumentMacaron extends Document {
 
   private matieres: DocumentMacaronMatiereItem[] = [];
   private verificationUrl = "";
+  private documentApproval: StudentDocumentApproval = {};
 
   constructor(payload: DocumentMacaronPayload | null = null) {
     super();
@@ -147,6 +150,7 @@ class DocumentMacaron extends Document {
     this.session = data.session;
     this.matieres = data.matieres ?? [];
     this.verificationUrl = data.verificationUrl;
+    this.documentApproval = { ...this.documentApproval, ...(data.documentApproval ?? {}) };
   }
 
   async generate() {
@@ -184,6 +188,7 @@ class DocumentMacaron extends Document {
       this.parcour,
       this.contact,
       this.document,
+      this.documentApproval,
     );
   }
 }
