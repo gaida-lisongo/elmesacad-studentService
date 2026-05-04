@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import DocumentLaboratoire, { type DocumentLaboratoirePayload } from '../../../util/pdf/DocumentLaboratoire';
+import { formatAnneeAcademiqueFromSlug } from '../../../util/pdf/Document';
 import { laboratoireClientPayloadSchema } from '../../../schemas/laboratoire.schema';
+import { ParcoursService } from '../../../services/parcours.service';
 import ResourceModel from '../../../models/Resource';
+import { metadataSectionRef, pickParcours } from '../../../util/parcours-pick.util';
 
 const router = Router();
 
@@ -18,8 +21,7 @@ function formatDateFr(d: Date | undefined): string | undefined {
 /**
  * POST /api/laboratoire/generate
  * Corps : objet unique ou tableau d’un élément (payload boutique).
- * Étudiant et contact : entièrement issus du payload `etudiant`.
- * Vérifie que `produit._id` est une ressource Mongo de catégorie `labo`.
+ * Identité / contact : payload `etudiant`. Parcours académique : Mongo via email + `sectionRef` (même logique que le macaron).
  */
 router.post('/generate', async (req: Request, res: Response) => {
   const parsed = laboratoireClientPayloadSchema.safeParse(req.body);
@@ -48,7 +50,26 @@ router.post('/generate', async (req: Request, res: Response) => {
     });
   }
 
-  const resource = await ResourceModel.findById(body.produit._id).lean();
+  const email = body.etudiant.email.trim();
+
+  const [parcoursRows, resource] = await Promise.all([
+    ParcoursService.findByStudentEmail(email),
+    ResourceModel.findById(body.produit._id).lean(),
+  ]);
+
+  const sectionRef =
+    metadataSectionRef(body.commande.metadataCommande) ??
+    metadataSectionRef(body.commande.ressource.metadata) ??
+    body.branding?.sectionRef?.trim();
+
+  const parcours = pickParcours(parcoursRows, sectionRef);
+  if (!parcours) {
+    return res.status(404).json({
+      success: false,
+      error: 'Aucun parcours trouvé pour cet email étudiant',
+    });
+  }
+
   if (!resource) {
     return res.status(404).json({ success: false, error: 'Ressource (produit) introuvable' });
   }
@@ -61,7 +82,16 @@ router.post('/generate', async (req: Request, res: Response) => {
     });
   }
 
-  const sexe = body.etudiant.sexe ?? 'M';
+  const pStudent = (
+    parcours as {
+      student: { nomComplet: string; sexe: string; matricule: string; lieu_naissance?: string };
+    }
+  ).student;
+  const pProgramme = (parcours as { programme: { classe: string; filiere: string } }).programme;
+  const pAnnee = (parcours as { annee: { slug: string } }).annee;
+  const pReference = String((parcours as { reference?: string }).reference ?? '').trim();
+
+  const sexe = body.etudiant.sexe ?? pStudent.sexe;
   const ville = body.etudiant.lieuDeNaissance?.trim() || body.etudiant.ville?.trim() || '—';
   const dateNaissance = formatDateFr(body.etudiant.dateDeNaissance);
 
@@ -70,13 +100,6 @@ router.post('/generate', async (req: Request, res: Response) => {
     body.commande.id.slice(-12).toUpperCase();
 
   const dateCreate = new Date().toLocaleDateString('fr-FR');
-
-  const cycle = body.etudiant.cycle?.trim();
-  const diplome = body.etudiant.diplome?.trim();
-  const promotionLabel =
-    [cycle, diplome].filter(Boolean).join(' — ') ||
-    body.promotion?.programmeDesignation?.trim() ||
-    '—';
 
   const descriptionSections = body.produit.description?.filter((s) => s.title || s.contenu?.length);
 
@@ -92,10 +115,12 @@ router.post('/generate', async (req: Request, res: Response) => {
       dateNaissance,
     },
     parcour: {
-      promotion: promotionLabel,
+      promotion: pProgramme.classe,
+      filiere: pProgramme.filiere,
       systeme: 'LMD',
-      matricule: body.etudiant.matricule,
-      annee: '—',
+      matricule: pStudent.matricule,
+      annee: formatAnneeAcademiqueFromSlug(pAnnee.slug),
+      referenceParcours: pReference || undefined,
     },
     contact: {
       email: body.etudiant.email,

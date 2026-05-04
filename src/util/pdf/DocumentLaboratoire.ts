@@ -21,6 +21,9 @@ export type DocumentLaboratoirePayload = {
     systeme: string;
     matricule: string;
     annee: string;
+    filiere?: string;
+    /** Référence unique du parcours en base (ex. INBTP/...) */
+    referenceParcours?: string;
   };
   contact?: {
     email: string;
@@ -60,7 +63,14 @@ class DocumentLaboratoire extends Document {
     ville: "Kinshasa",
   };
 
-  private parcour: { promotion: string; systeme: string; matricule: string; annee: string } = {
+  private parcour: {
+    promotion: string;
+    systeme: string;
+    matricule: string;
+    annee: string;
+    filiere?: string;
+    referenceParcours?: string;
+  } = {
     promotion: "Promotion",
     systeme: "LMD",
     matricule: "Non renseigne",
@@ -134,21 +144,43 @@ class DocumentLaboratoire extends Document {
     };
   }
 
+  /** Une paire libellé / valeur pour la zone identité (2 colonnes). */
+  private identityField(label: string, value: string) {
+    return {
+      stack: [
+        { text: label, color: "#6B7280", fontSize: this.chart.xs, margin: [0, 0, 0, 2] },
+        { text: value, bold: true, fontSize: this.chart.sm, margin: [0, 0, 0, 10] },
+      ],
+    };
+  }
+
+  private identityTwoColumns() {
+    const left: Record<string, unknown>[] = [
+      this.identityField('Nom complet', this.student.nom),
+      this.identityField('Sexe', this.student.sexe === 'F' ? 'Féminin' : 'Masculin'),
+      this.identityField('Ville / lieu de naissance', this.student.ville),
+      this.identityField('Matricule', this.parcour.matricule),
+    ];
+
+    const right: Record<string, unknown>[] = [];
+    if (this.student.email) right.push(this.identityField('E-mail', this.student.email));
+    if (this.student.telephone) right.push(this.identityField('Téléphone', this.student.telephone));
+    if (this.student.adresse) right.push(this.identityField('Adresse', this.student.adresse));
+    if (this.student.nationalite) right.push(this.identityField('Nationalité', this.student.nationalite));
+    if (this.student.dateNaissance) right.push(this.identityField('Date de naissance', this.student.dateNaissance));
+
+    return {
+      columns: [
+        { width: '50%', stack: left },
+        { width: '50%', stack: right.length ? right : [{ text: ' ', fontSize: this.chart.xs }] },
+      ],
+      columnGap: 16,
+    };
+  }
+
   async generate() {
     await this.background();
     await this.buildFooter(this.verificationUrl);
-
-    const identityRows: Array<[string, string]> = [
-      ["Nom complet", this.student.nom],
-      ["Sexe", this.student.sexe === "F" ? "Féminin" : "Masculin"],
-      ["Ville / lieu de naissance", this.student.ville],
-      ["Matricule", this.parcour.matricule],
-    ];
-    if (this.student.email) identityRows.push(["E-mail", this.student.email]);
-    if (this.student.telephone) identityRows.push(["Téléphone", this.student.telephone]);
-    if (this.student.adresse) identityRows.push(["Adresse", this.student.adresse]);
-    if (this.student.nationalite) identityRows.push(["Nationalité", this.student.nationalite]);
-    if (this.student.dateNaissance) identityRows.push(["Date de naissance", this.student.dateNaissance]);
 
     const descriptifStack: Record<string, unknown>[] = [];
     const sections = this.laboratoire.descriptionSections;
@@ -205,7 +237,7 @@ class DocumentLaboratoire extends Document {
         {
           stack: [
             { text: "Identité de l'étudiant", style: "subtitle", margin: [0, 0, 0, 6] },
-            this.infoTable(identityRows),
+            this.identityTwoColumns(),
           ],
           colSpan: 3,
           border: [false, false, false, false],
@@ -247,28 +279,24 @@ class DocumentLaboratoire extends Document {
       ],
       [
         {
-          columns: [
-            {
-              width: "*",
-              text: ''
-            },
-            {
-              width: "*",
-              stack: [
-                { text: "Parcours", style: "subtitle", margin: [0, 0, 0, 6] },
-                this.infoTable([
-                  ["Promotion", this.parcour.promotion],
-                  ["Systeme", this.parcour.systeme],
-                  ["Annee", this.parcour.annee],
-                ]),
-              ],
-            },
+          stack: [
+            { text: 'Parcours académique (registre INBTP)', style: 'subtitle', margin: [0, 0, 0, 6] },
+            this.infoTable([
+              ['Classe / promotion', this.parcour.promotion],
+              ...(this.parcour.filiere ? [['Filière', this.parcour.filiere] as [string, string]] : []),
+              ['Système', this.parcour.systeme],
+              ['Année académique', this.parcour.annee],
+              ['Matricule institutionnel', this.parcour.matricule],
+              ...(this.parcour.referenceParcours
+                ? [['Référence parcours', this.parcour.referenceParcours] as [string, string]]
+                : []),
+            ]),
           ],
           colSpan: 3,
           border: [false, false, false, false],
         },
-        "",
-        "",
+        '',
+        '',
       ],
     ]);
   }

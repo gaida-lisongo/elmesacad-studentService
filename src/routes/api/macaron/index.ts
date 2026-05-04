@@ -4,17 +4,13 @@ import type { StudentDocumentApproval } from '../../../util/pdf/Document';
 import { macaronClientPayloadSchema } from '../../../schemas/macaron.schema';
 import { ParcoursService } from '../../../services/parcours.service';
 import ResourceModel from '../../../models/Resource';
+import { metadataSectionRef, pickParcours } from '../../../util/parcours-pick.util';
 
 const router = Router();
 
 function buildVerificationUrl(commandeId: string): string {
   const base = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   return `${base}/api/commandes/verify/${commandeId}`;
-}
-
-function metadataSectionRef(metadata: Record<string, unknown> | undefined): string | undefined {
-  const raw = metadata?.sectionRef;
-  return typeof raw === 'string' ? raw : undefined;
 }
 
 type ResourceBrandingLean = {
@@ -34,45 +30,6 @@ function approvalFromBranding(b: ResourceBrandingLean | undefined): StudentDocum
     email: b.email?.trim() || undefined,
     telephone: b.contact?.trim() || undefined,
   };
-}
-
-/**
- * Choisit un parcours : priorité au statut « inscrit », sinon le plus récent (déjà trié par le service).
- * Si `sectionRef` est fourni, tente d’abord un parcours dont la filière « ressemble » au slug (mots-clés communs).
- */
-function pickParcours(
-  rows: Awaited<ReturnType<typeof ParcoursService.findByStudentEmail>>,
-  sectionRef?: string,
-): (typeof rows)[0] | null {
-  if (!rows.length) return null;
-
-  const tokens = (s: string) =>
-    s
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .split(/[^a-z0-9]+/)
-      .filter((w) => w.length > 2);
-
-  const refTokens = sectionRef ? tokens(sectionRef) : [];
-
-  if (refTokens.length) {
-    const scored = rows.map((p) => {
-      const fil = String((p as { programme?: { filiere?: string } }).programme?.filiere ?? '');
-      const filTokens = new Set(tokens(fil));
-      let score = 0;
-      for (const t of refTokens) {
-        if (filTokens.has(t)) score += 2;
-        else if (fil.toLowerCase().includes(t)) score += 1;
-      }
-      return { p, score };
-    });
-    scored.sort((a, b) => b.score - a.score);
-    if (scored[0].score > 0) return scored[0].p as (typeof rows)[0];
-  }
-
-  const inscrit = rows.find((p) => (p as { status?: string }).status === 'inscrit');
-  return (inscrit ?? rows[0]) as (typeof rows)[0];
 }
 
 /**
@@ -108,8 +65,9 @@ router.post('/generate', async (req: Request, res: Response) => {
 
   const parcours = pickParcours(
     parcoursRows,
-    metadataSectionRef(body.commande.metadataCommande as Record<string, unknown> | undefined) ??
-      metadataSectionRef(body.commande.ressource.metadata as Record<string, unknown> | undefined),
+    metadataSectionRef(body.commande.metadataCommande) ??
+      metadataSectionRef(body.commande.ressource.metadata) ??
+      body.branding?.sectionRef?.trim(),
   );
 
   if (!parcours) {
