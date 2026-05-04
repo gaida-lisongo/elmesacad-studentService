@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import DocumentBulletin, { type DocumentBulletinPayload } from '../../../util/pdf/DocumentBulletin';
 import { bulletinClientPayloadSchema } from '../../../schemas/bulletin.schema';
+import { verificationBase } from '../../../config/verification-base';
 
 const router = Router();
 
@@ -28,7 +29,6 @@ router.post('/generate', async (req: Request, res: Response) => {
 
   const body = parsed.data;
   const docMeta = body.document;
-  const verificationBase = 'https://services.inbtp.ac.cd/student';
   const verifyRef = docMeta?.reference ?? 'bulletin';
   const verificationUrl = `${verificationBase}/api/commandes/verify/${verifyRef}`;
 
