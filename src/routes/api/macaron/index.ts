@@ -9,7 +9,7 @@ import { metadataSectionRef, pickParcours } from '../../../util/parcours-pick.ut
 const router = Router();
 
 function buildVerificationUrl(commandeId: string): string {
-  const base = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = (process.env.APP_URL || 'https://services.inbtp.ac.cd/student').replace(/\/$/, '');
   return `${base}/api/commandes/verify/${commandeId}`;
 }
 
