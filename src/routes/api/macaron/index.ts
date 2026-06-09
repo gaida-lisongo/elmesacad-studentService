@@ -10,7 +10,7 @@ const router = Router();
 
 function buildVerificationUrl(commandeId: string): string {
   const base = (process.env.APP_URL || 'https://sections.inbtp.net').replace(/\/$/, '');
-  return `${base}/api/macaron/verify/${commandeId}`;
+  return `${base}/macaron/${commandeId}`;
 }
 
 type ResourceBrandingLean = {
