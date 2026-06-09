@@ -168,8 +168,8 @@ class DocumentMacaron extends Document {
         ? this.matieres.map((item, index) => [
             { text: String(index + 1), style: "tabCell" },
             { text: item.matiere, style: "tabCellLeft" },
-            { text: item.dateEpreuve, style: "tabCell" },
-            { text: "................", style: "tabCell" },
+            { text: "...........................", style: "tabCell" },
+            { text: "...........................", style: "tabCell" },
           ])
         : [[{ text: "1", style: "tabCell" }, { text: "Aucune matière renseignée", style: "tabCellLeft" }, { text: "-", style: "tabCell" }, { text: "................", style: "tabCell" }]]),
     ];
