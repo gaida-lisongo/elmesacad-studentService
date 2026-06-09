@@ -81,7 +81,7 @@ class Document {
                     fontSize: this.chart.xs,
                     color: this.chart.white,
                     fillColor: this.chart.secondary,
-                    lineHeight: 1 // 👈 au lieu de 1.35 (gros impact)
+                    lineHeight: 1.3 // 👈 au lieu de 1.35 (gros impact)
                 },
                 gras: {
                     fontSize: this.chart.sm,

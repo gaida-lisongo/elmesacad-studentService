@@ -118,13 +118,13 @@ class DocumentMacaron extends Document {
     this.docDefinition.styles = {
       ...this.docDefinition.styles,
       tabCell: {
-        fontSize: this.chart.xs,
-        lineHeight: 1,
+        fontSize: this.chart.md,
+        lineHeight: 1.3,
         alignment: "center",
       },
       tabCellLeft: {
-        fontSize: this.chart.xs,
-        lineHeight: 1,
+        fontSize: this.chart.md,
+        lineHeight: 1.3,
         alignment: "left",
       },
     };
@@ -161,8 +161,8 @@ class DocumentMacaron extends Document {
       [
         { text: "N°", style: "tabHeader" },
         { text: "Matière", style: "tabHeader" },
-        { text: "Date epreuve", style: "tabHeader" },
-        { text: "Signature du Surveillant", style: "tabHeader" },
+        { text: "Date", style: "tabHeader" },
+        { text: "Surveillant", style: "tabHeader" },
       ],
       ...(this.matieres.length > 0
         ? this.matieres.map((item, index) => [
@@ -180,7 +180,7 @@ class DocumentMacaron extends Document {
           table: {
             headerRows: 1,
             // 1. CHANGEMENT ICI : On passe en pourcentages ou répartition dynamique pour occuper 100% de la largeur
-            widths: ['8%', '42%', '20%', '30%'], 
+            widths: ['10%', '*', '20%', '30%'], 
             body: tableRows,
           },
           // 2. AJOUT ICI : Ajout d'une mise en page personnalisée pour agrandir la hauteur des lignes (Padding)
