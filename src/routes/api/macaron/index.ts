@@ -10,7 +10,7 @@ const router = Router();
 
 function buildVerificationUrl(commandeId: string): string {
   const base = (process.env.APP_URL || 'https://sections.inbtp.net').replace(/\/$/, '');
-  return `${base}/macaron/${commandeId}`;
+  return `${base}/paiement?commandeId=${commandeId}`;
 }
 
 type ResourceBrandingLean = {
