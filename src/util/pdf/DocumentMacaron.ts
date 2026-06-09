@@ -161,7 +161,6 @@ class DocumentMacaron extends Document {
       [
         { text: "N°", style: "tabHeader" },
         { text: "Matière", style: "tabHeader" },
-        { text: "Date", style: "tabHeader" },
         { text: "Surveillant", style: "tabHeader" },
       ],
       ...(this.matieres.length > 0
@@ -169,9 +168,8 @@ class DocumentMacaron extends Document {
             { text: String(index + 1), style: "tabCell" },
             { text: item.matiere, style: "tabCellLeft" },
             { text: ".....................", style: "tabCell" },
-            { text: ".....................", style: "tabCell" },
           ])
-        : [[{ text: "1", style: "tabCell" }, { text: "Aucune matière renseignée", style: "tabCellLeft" }, { text: "-", style: "tabCell" }, { text: "................", style: "tabCell" }]]),
+        : [[{ text: "1", style: "tabCell" }, { text: "Aucune matière renseignée", style: "tabCellLeft" }, { text: "................", style: "tabCell" }]]),
     ];
 
     await this.studentLayout(
@@ -180,20 +178,9 @@ class DocumentMacaron extends Document {
           table: {
             headerRows: 1,
             // 1. CHANGEMENT ICI : On passe en pourcentages ou répartition dynamique pour occuper 100% de la largeur
-            widths: ['10%', '*', '20%', '30%'], 
+            widths: ['10%', '*', '30%'], 
             body: tableRows,
           },
-          // 2. AJOUT ICI : Ajout d'une mise en page personnalisée pour agrandir la hauteur des lignes (Padding)
-          layout: {
-            paddingLeft: function(i: number, node: any) { return 10; },
-            paddingRight: function(i: number, node: any) { return 10; },
-            paddingTop: function(i: number, node: any) { return 12; },    // Augmente l'espace au-dessus du texte
-            paddingBottom: function(i: number, node: any) { return 12; }, // Augmente l'espace en-dessous (hauteur de ligne)
-            vLineWidth: function(i: number, node: any) { return 0.5; },   // Épaisseur des lignes verticales
-            hLineWidth: function(i: number, node: any) { return 0.5; },   // Épaisseur des lignes horizontales
-            hLineColor: function(i: number, node: any) { return '#e2e8f0'; }, // Couleur plus moderne (style Tailwind slate-200)
-            vLineColor: function(i: number, node: any) { return '#e2e8f0'; }
-          }
         },
       ],
       this.student,
